@@ -1,0 +1,50 @@
+{
+  "name": "barmoury",
+  "version": "1.0.0",
+  "description": "The super Backend Toolkits 🔨 🔧 🚀 for Node Typescript",
+  "main": "index.js",
+  "module": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "npx tsc",
+    "clean": "rm -Rf dist",
+    "watch": "npx npm-watch build",
+    "pack": "npm run clean; npm run build; cp ./{package.json,LICENSE,README.md} dist; cd dist; npm pack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "files": [
+    "**",
+    "LICENSE",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/barmoury/barmoury-ts.git"
+  },
+  "keywords": [
+    "api",
+    "thecarisma",
+    "armoury",
+    "query",
+    "sequilize",
+    "fastapi",
+    "audit",
+    "typescript"
+  ],
+  "author": "Azeez Adewale",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/barmoury/barmoury-ts/issues"
+  },
+  "homepage": "https://barmoury.github.io/barmoury-ts",
+  "devDependencies": {
+    "@types/node": "^18.15.11",
+    "sequelize": "^6.31.0",
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.4"
+  },
+  "peerDependencies": {
+    "fastify": "^4.15.0",
+    "reflect-metadata": "^0.1.13"
+  }
+}
