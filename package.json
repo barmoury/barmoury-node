@@ -39,12 +39,13 @@
   "homepage": "https://barmoury.github.io/barmoury-ts",
   "devDependencies": {
     "@types/node": "^18.15.11",
-    "sequelize": "^6.31.0",
     "tslib": "^2.5.0",
     "typescript": "^5.0.4"
   },
-  "peerDependencies": {
+  "dependencies": {
     "fastify": "^4.15.0",
+    "sequelize": "^6.31.0",
+    "@fastify/jwt": "^6.7.1",
     "reflect-metadata": "^0.1.13"
   }
 }

@@ -27,6 +27,19 @@ export function ValidateArray(options: ValidateArrayAttributtes) {
                 itemType.type = "object";
                 ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"] = itemType;
                 return;
+            } else if (typeof options.itemType === "object" && options.itemType instanceof Array) {
+                const ajvValues = options.itemType
+                    .map(item => {
+                        if (typeof item == "function") {
+                            item = ((ControllersValidationMap[`${item}`] || {}).body || {})[group] || {};
+                            item.type = "object";
+                        }
+                        return item;
+                    });
+                ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"] = {
+                    anyOf: ajvValues
+                };
+                return;
             }
             ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"] = {};
             ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"]["type"] = options.itemType;

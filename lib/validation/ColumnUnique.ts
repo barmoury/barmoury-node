@@ -1,7 +1,5 @@
 
-import { Validator } from "./Validator";
-import { BarmouryObject } from "../util/Types";
-import { ControllersValidationMap, prepareValidationMap } from "./Validate";
+import { registerValidation } from "./Validate";
 
 export interface ColumnUniqueAttributtes {
     table: string;
@@ -16,8 +14,7 @@ export function ColumnUnique(attr: ColumnUniqueAttributtes) {
         const groups = attr.groups || ["CREATE"];
         const key = `${target.constructor}`;
         for (const group of groups) {
-            prepareValidationMap(key, group);
-            ControllersValidationMap[key]["__bamoury__validation_queries__"][group].push({
+            registerValidation(target, group, {
                 propertyKey,
                 message: attr.message,
                 validate: async (sequelize: any, value: any, opt: any) => {

@@ -5,20 +5,26 @@ import { FastifyInstance } from "fastify";
 import { Model, Request } from "./model/Model";
 import { BarmouryObject } from "../util/Types";
 import { RequestMethod } from "./enum/RequestMethod";
-import { ContraintValidationError } from "./exception";
-export { RequestMapping } from "./decorator/RequestMapping";
 import { ControllersValidationMap } from "../validation/Validate";
 import { Controller, RouteMethod } from "./controller/Controller";
 import { ControllersRequestMap } from "./decorator/RequestMapping";
+import { AccessDeniedError, ContraintValidationError } from "./exception";
 
 
+export * from "./Timeo";
 export * from "./exception";
 export * from "./model/Model";
-export { Timeo } from "./Timeo";
+export * from "./config/IRoute";
+export * from "./decorator/Secured";
+export * from "./config/JwtManager";
 export * from "./model/ApiResponse";
+export * from "./model/UserDetails";
 export * from "./enum/RequestMethod";
+export * from "./config/ErrorAdviser";
+export * from "./config/RouteValidator";
 export * from "./controller/Controller";
-export { ErrorAdviseAttributtes, ErrorAdvise, ErrorAdviser, registerErrorAdvisers } from "./config/ErrorAdviser";
+export * from "./decorator/RequestMapping";
+export * from "./controller/BactuatorController";
 
 let preHandlerRegistered = false;
 const ControllersValidatioQueriesMap: BarmouryObject = {};
@@ -38,7 +44,7 @@ export function registerRoutes(fastify: FastifyInstance, opts: { controller: Con
             let val = (controller as any)[name];
             if (typeof val !== "function" || !val.__barmoury_requestMapping && name !== "setup") return;
             if (name === "setup") {
-                if (controllerRequestMapping.model) val.bind(controller)(controllerRequestMapping.model);
+                if (controllerRequestMapping.model) val.bind(controller)(controllerRequestMapping.model, fastify);
                 else if (typeof controllerRequestMapping == "object") val.bind(controller)(controllerRequestMapping);
                 return;
             }
@@ -49,6 +55,7 @@ export function registerRoutes(fastify: FastifyInstance, opts: { controller: Con
             const option: BarmouryObject = { schema: {} };
             const key = `${controllerRequestMapping.request}`;
             const routerPath = `${method.toUpperCase()}__${opts.prefix || ""}${route}`.replace(/([^:]\/)\/+/g, "$1");
+            // autowire the validation
             if (val.__barmoury_validate_groups) {
                 for (const group of val.__barmoury_validate_groups) {
                     const schema = ((ControllersValidationMap[key] || {}).body || {})[group];
@@ -64,6 +71,26 @@ export function registerRoutes(fastify: FastifyInstance, opts: { controller: Con
                     }
                 }
             }
+            // auto wire the @Secured roles check
+            if (val.__barmoury_secured) {
+                const valFn = val.bind(controller);
+                const modifiedVal = async (...args: any[]) => {
+                    const fastifyRequest = args[0];
+                    const roles: string[] = (fastifyRequest.user?.authorityPrefix != undefined && fastifyRequest.user?.authorityPrefix != null)
+                        ? val.__barmoury_secured.map((role: string) => `${fastifyRequest.user?.authorityPrefix}${role}`)
+                        : val.__barmoury_secured;
+                    if (fastifyRequest.authoritiesValues) {
+                        const authoritiesValues = fastifyRequest.authoritiesValues;
+                        if (!authoritiesValues.some((r: string) => roles?.includes(r))) {
+                            throw new AccessDeniedError(Controller.ACCESS_DENIED);
+                        }
+                    }
+                    return await valFn(...args);
+                };
+                modifiedVal.__barmoury_secured = val.__barmoury_secured;
+                val = modifiedVal;
+            }
+            // set the handlers
             switch (method) {
                 case RequestMethod.PUT: fastify.put(route, option, val.bind(controller)); break;
                 case RequestMethod.HEAD: fastify.head(route, option, val.bind(controller)); break;
@@ -87,6 +114,10 @@ export function registerController(fastify: FastifyInstance, opts: BarmouryObjec
 export function registerControllers(fastify: FastifyInstance, opts: BarmouryObject, controllers: Controller<Model<any, any>, Request>[]) {
     for (const controller of controllers) {
         fastify.register(registerController, { controller, ...opts });
+    }
+    if (opts.bacuator) {
+        if (opts.sequelize) opts.bacuator.sequelize = opts.sequelize;
+        fastify.register(registerController, { controller: opts.bacuator, ...opts });
     }
 
     // register queries validations

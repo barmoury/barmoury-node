@@ -1,4 +1,5 @@
 
+import "reflect-metadata";
 import { FieldUtil } from "../util/FieldUtil";
 import { BarmouryObject } from "../util/Types";
 
@@ -8,6 +9,12 @@ export const ControllersValidationMap: BarmouryObject = {};
 export interface ValidateAttributtes {
     model?: any;
     groups?: string[];
+}
+
+export interface ValidatorAttr {
+    message: string;
+    propertyKey: string;
+    validate: (sequelize: any, value: any, opt: any) => Promise<boolean>;
 }
 
 export function Validate(attr?: ValidateAttributtes) {
@@ -58,6 +65,12 @@ export function prepareValidationSchema(key: any, propertyKey: string, target: a
         ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["type"] =
             [Reflect.getMetadata("design:type", target, propertyKey).name.toLowerCase()];
     }
+}
+
+export function registerValidation(target: any, group: string, validation: ValidatorAttr) {
+    const key = `${target.constructor}`;
+    prepareValidationMap(key, group);
+    ControllersValidationMap[key]["__bamoury__validation_queries__"][group].push(validation);
 }
 
 // TODO add schema validation suppport for Joi and Yup

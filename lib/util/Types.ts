@@ -1,5 +1,5 @@
 
-export type BarmouryObject = any;
+export type BarmouryObject = { [index: string]: any; };
 export type CallBack = (...args: any[]) => any;
 export type Logger = {
     info: (...args: any[]) => any,

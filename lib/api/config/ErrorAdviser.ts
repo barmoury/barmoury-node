@@ -43,14 +43,14 @@ export class ErrorAdviser {
         this.processResponse.bind(this);
     }
 
-    processResponse(error: Error, errors: BarmouryObject[], logger?: Logger): any {
+    processResponse(error: Error, errors: any[], logger?: Logger): any {
         logger?.error(`[barmoury.ErrorAdviser]`, error.message, error);
         return new ApiResponse(errors);
     }
 
     @ErrorAdvise({ errorNames: ["Error", "ValidationError", "DatabaseError", "UniqueConstraintError"] })
     default(error: Error, options?: BarmouryObject) {
-        return this.processResponse(error, [error.message], options?.logger);
+        return this.processResponse(error, [options?.msg || error.message], options?.logger);
     }
 
     @ErrorAdvise({ errorNames: ["AjvValidationError"], statusCode: 400 })
@@ -66,11 +66,17 @@ export class ErrorAdviser {
 
     @ErrorAdvise({ errorNames: ["AccessDeniedError"], statusCode: 403 })
     accessDeniedError(error: Error, options?: BarmouryObject) {
-        return this.default(error, options);
+        const msg: string = "Access denied. You do not have access to this resource";
+        return this.default(error, { ...options, msg });
     }
 
     @ErrorAdvise({ errorNames: ["RouteMethodNotSupportedError"], statusCode: 405 })
     routeNotSupportedError(error: Error, options?: BarmouryObject) {
+        return this.default(error, options);
+    }
+
+    @ErrorAdvise({ errorNames: ["RouteValidatorError"], statusCode: 401 })
+    unAuthorized(error: Error, options?: BarmouryObject) {
         return this.default(error, options);
     }
 
@@ -89,17 +95,28 @@ export class ErrorAdviser {
         return this.default(error, options);
     }
 
+    @ErrorAdvise({ errorNames: [ "FST_JWT_NO_AUTHORIZATION_IN_HEADER" ], statusCode: 401 })
+    missingAuthToken(error: Error, options?: any) {
+        const msg: string = "Authorization token is missing";
+        return this.default(error, { ...options, msg });
+    }
+
+    @ErrorAdvise({ errorNames: [ "FST_JWT_AUTHORIZATION_TOKEN_INVALID" ], statusCode: 401 })
+    unauthorizedErrors(error: Error, options?: any) {
+        const msg: string = "Invalid Authorization token";
+        return this.default(error, { ...options, msg });
+    }
+
 }
 
-export function registerErrorAdvisers<T>(fastify: FastifyInstance, options: BarmouryObject, advisers: (new () => T)[]) {
+export function registerErrorAdvisers<T>(fastify: FastifyInstance, options: BarmouryObject, advisers: (new (p?: any) => any)[]) {
     for (const adviser of advisers) {
-        (new adviser() as any);
+        (new adviser(fastify) as any);
     }
     fastify.setErrorHandler(function (error: Error, request: FastifyRequest, reply: FastifyReply) {
-        //console.log("VVV", "error", error.constructor.name);
         const errorKey = (error as any).validation ? "AjvValidationError" : error.constructor.name;
         const errorAdvice = ErrorAdviserMap[(Fastify.errorCodes as any)[(error as any).code]]
-            || ErrorAdviserMap[errorKey] || ErrorAdviserMap["___UnknownError___"];
+            || ErrorAdviserMap[(error as any).code] || ErrorAdviserMap[errorKey] || ErrorAdviserMap["___UnknownError___"];
         if (errorAdvice) {
             reply.code(errorAdvice.statusCode || (error as any).statusCode || 500).send(errorAdvice.fn(error, options));
         } else {

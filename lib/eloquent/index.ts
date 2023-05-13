@@ -1,4 +1,6 @@
 
-export { QueryArmoury } from "./QueryAmoury"
-export { SqlInterface } from "./SqlInterface"
-export { MySqlInterface } from "./sqlinterface/MySqlInterface"
+export * from "./StatQuery";
+export * from "./QueryAmoury";
+export * from "./SqlInterface";
+export * from "./RequestParamFilter";
+export * from "./sqlinterface/MySqlInterface";

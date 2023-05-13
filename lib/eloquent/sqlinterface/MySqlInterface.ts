@@ -7,4 +7,12 @@ export class MySqlInterface implements SqlInterface {
         return "mysql";
     }
 
+    countFunction(): string {
+        return "COUNT";
+    }
+
+    averageFunction(): string {
+        return "AVG";
+    }
+
 }

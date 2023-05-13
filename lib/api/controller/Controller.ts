@@ -3,9 +3,9 @@ import { Validate } from "../../validation";
 import { Model, Request } from "../model/Model";
 import { ApiResponse } from "../model/ApiResponse";
 import { RequestMethod } from "../enum/RequestMethod";
-import { FastifyRequest, FastifyReply } from "fastify";
 import { RequestMapping } from "../decorator/RequestMapping";
 import { MySqlInterface, QueryArmoury } from "../../eloquent";
+import { FastifyRequest, FastifyReply, FastifyInstance } from "fastify";
 import { AccessDeniedError, InvalidParameterError, RouteMethodNotSupportedError } from "../exception";
 
 interface IQuerystring {
@@ -13,12 +13,9 @@ interface IQuerystring {
     password: string;
 }
 
-interface Authentication {
-
-}
-
 export class Controller<T1 extends Model<any, any>, T2 extends Request> {
 
+    fastify?: FastifyInstance;
     fineName: string = "model";
     springLike: boolean = false;
     t1Constructor!: (new () => T1);
@@ -28,19 +25,20 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
     static readonly ACCESS_DENIED = "Access denied. You do not have the required role to access this endpoint";
 
     async preResponse(entity: T1) { }
-    async preQuery(request: FastifyRequest) { }
-    async preCreate(request: FastifyRequest, authentication: Authentication, entity: T1, entityRequest: T2) { }
-    async postCreate(request: FastifyRequest, authentication: Authentication, entity: T1) { }
-    async preUpdate(request: FastifyRequest, authentication: Authentication, entity: T1, entityRequest: T2) { }
-    async postUpdate(request: FastifyRequest, authentication: Authentication, entity: T1) { }
-    async preDelete(request: FastifyRequest, authentication: Authentication, entity: T1, id: Number) { }
-    async postDelete(request: FastifyRequest, authentication: Authentication, entity: T1) { }
+    async preQuery(request: FastifyRequest, authentication: any) { }
+    async preCreate(request: FastifyRequest, authentication: any, entity: T1, entityRequest: T2) { }
+    async postCreate(request: FastifyRequest, authentication: any, entity: T1) { }
+    async preUpdate(request: FastifyRequest, authentication: any, entity: T1, entityRequest: T2) { }
+    async postUpdate(request: FastifyRequest, authentication: any, entity: T1) { }
+    async preDelete(request: FastifyRequest, authentication: any, entity: T1, id: Number) { }
+    async postDelete(request: FastifyRequest, authentication: any, entity: T1) { }
 
     async processResponse<T>(reply: FastifyReply, httpStatus: number, data: T, message: string): Promise<FastifyReply> {
         return ApiResponse.build(httpStatus, data, message).r(reply);
     }
 
-    setup(t1Constructor: new () => T1) {
+    setup(t1Constructor: new () => T1, fastify: FastifyInstance) {
+        this.fastify = fastify;
         this.t1Constructor = t1Constructor;
         this.fineName = this.t1Constructor.name;
     }
@@ -65,9 +63,8 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
         return resourceRequest;
     }
 
-    async resolveRequestPayload(authentication: Authentication, request: T2): Promise<T1> {
-        // get the user details, then set second
-        return (new this.t1Constructor()).resolve(request, this.queryArmoury);
+    async resolveRequestPayload(authentication: any, request: T2): Promise<T1> {
+        return (new this.t1Constructor()).resolve(request, this.queryArmoury, authentication);
     }
 
     @RequestMapping({ value: "/stat", method: RequestMethod.GET })
@@ -76,9 +73,11 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
             throw new RouteMethodNotSupportedError("The GET '**/stat' route is not supported for this resource");
         }
         const roles = await this.getRouteMethodRoles(RouteMethod.STAT);
-        if (roles.length > 0 /*&& nonmatch on in auth roles*/) throw new AccessDeniedError(Controller.ACCESS_DENIED);
-        await this.preQuery(request);
-        return await this.processResponse(reply, 200, this.queryArmoury.statWithQuery(request, this.t1Constructor),
+        if (roles.length > 0 && !(request as any).authoritiesValues?.some((r: string) => roles.includes(r))) {
+            throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        }
+        await this.preQuery(request, (request as any).user);
+        return await this.processResponse(reply, 200, await this.queryArmoury.statWithQuery(request, this.t1Constructor),
             `${this.fineName} stat fetched successfully`);
     };
 
@@ -88,8 +87,10 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
             throw new RouteMethodNotSupportedError("The GET '**/' route is not supported for this resource");
         }
         const roles = await this.getRouteMethodRoles(RouteMethod.INDEX);
-        if (roles.length > 0 /*&& nonmatch on in auth roles*/) throw new AccessDeniedError(Controller.ACCESS_DENIED);
-        await this.preQuery(request);
+        if (roles.length > 0 && !(request as any).authoritiesValues?.some((r: string) => roles.includes(r))) {
+            throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        }
+        await this.preQuery(request, (request as any).user);
         const resources = await this.queryArmoury.pageQuery(request, this.t1Constructor, this.springLike);
         return await this.processResponse(reply, 200, resources, `${this.fineName} list fetched successfully`);
     };
@@ -101,14 +102,16 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
             throw new RouteMethodNotSupportedError("The POST '**/' route is not supported for this resource");
         }
         const roles = await this.getRouteMethodRoles(RouteMethod.STORE);
-        if (roles.length > 0 /*&& nonmatch on in auth roles*/) throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        if (roles.length > 0 && !(request as any).authoritiesValues?.some((r: string) => roles.includes(r))) {
+            throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        }
         const requestPayload: T2 = request.body as T2;
-        const resource = await this.resolveRequestPayload({}, requestPayload);
-        await this.preCreate(request, {}, resource, requestPayload);
+        const resource = await this.resolveRequestPayload((request as any).user, requestPayload);
+        await this.preCreate(request, (request as any).user, resource, requestPayload);
         const msg = await this.validateBeforeCommit(resource);
         if (!!msg) throw new InvalidParameterError(msg);
         const result = await (this.t1Constructor as any).create(resource.dataValues);
-        await this.postCreate(request, {}, result);
+        await this.postCreate(request, (request as any).user, result);
         await this.preResponse(resource);
         return await this.processResponse(reply, 201, result, `${this.fineName} created successfully`);
     };
@@ -119,15 +122,17 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
             throw new RouteMethodNotSupportedError("The POST '**/multiple' route is not supported for this resource");
         }
         const roles = await this.getRouteMethodRoles(RouteMethod.STORE_MULTIPLE);
-        if (roles.length > 0 /*&& nonmatch on in auth roles*/) throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        if (roles.length > 0 && !(request as any).authoritiesValues?.some((r: string) => roles.includes(r))) {
+            throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        }
         const resources: T1[] = [];
         for (const requestPayload of (request.body as T2[])) {
-            const resource = await this.resolveRequestPayload({}, requestPayload);
-            await this.preCreate(request, {}, resource, requestPayload);
+            const resource = await this.resolveRequestPayload((request as any).user, requestPayload);
+            await this.preCreate(request, (request as any).user, resource, requestPayload);
             const msg = await this.validateBeforeCommit(resource);
             if (!!msg) throw new InvalidParameterError(msg);
             const result = await (this.t1Constructor as any).create(resource.dataValues);
-            await this.postCreate(request, {}, result);
+            await this.postCreate(request, (request as any).user, result);
             await this.preResponse(resource);
             resources.push(resource);
         }
@@ -140,7 +145,9 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
             throw new RouteMethodNotSupportedError("The GET '**/{id}' route is not supported for this resource");
         }
         const roles = await this.getRouteMethodRoles(RouteMethod.SHOW);
-        if (roles.length > 0 /*&& nonmatch on in auth roles*/) throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        if (roles.length > 0 && !(request as any).authoritiesValues?.some((r: string) => roles.includes(r))) {
+            throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        }
         const id = (request.params as any).id;
         const resource: T1 = await this.queryArmoury.getResourceById(this.t1Constructor, id,
             Controller.NO_RESOURCE_FORMAT_STRING.replace("${name}", this.fineName));
@@ -155,17 +162,19 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
             throw new RouteMethodNotSupportedError("The PATCH '**/{id}' route is not supported for this resource");
         }
         const roles = await this.getRouteMethodRoles(RouteMethod.UPDATE);
-        if (roles.length > 0 /*&& nonmatch on in auth roles*/) throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        if (roles.length > 0 && !(request as any).authoritiesValues?.some((r: string) => roles.includes(r))) {
+            throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        }
         const id = (request.params as any).id;
         const requestPayload: T2 = request.body as T2;
         const resource: T1 = (await this.queryArmoury.getResourceById(this.t1Constructor, id,
             Controller.NO_RESOURCE_FORMAT_STRING.replace("${name}", this.fineName)))
-            .resolve(requestPayload, this.queryArmoury, {});
-        await this.preUpdate(request, {}, resource, requestPayload);
+            .resolve(requestPayload, this.queryArmoury, (request as any).user);
+        await this.preUpdate(request, (request as any).user, resource, requestPayload);
         const msg = await this.validateBeforeCommit(resource);
         if (!!msg) throw new InvalidParameterError(msg);
         const result = await resource.update(resource.dataValues);
-        await this.postUpdate(request, {}, result);
+        await this.postUpdate(request, (request as any).user, result);
         await this.preResponse(resource);
         return await this.processResponse(reply, 200, result, `${this.fineName} updated successfully`);
     };
@@ -176,13 +185,15 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
             throw new RouteMethodNotSupportedError("The DELETE '**/{id}' route is not supported for this resource");
         }
         const roles = await this.getRouteMethodRoles(RouteMethod.DESTROY);
-        if (roles.length > 0 /*&& nonmatch on in auth roles*/) throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        if (roles.length > 0 && !(request as any).authoritiesValues?.some((r: string) => roles.includes(r))) {
+            throw new AccessDeniedError(Controller.ACCESS_DENIED);
+        }
         const id = (request.params as any).id;
         const resource: T1 = await this.queryArmoury.getResourceById(this.t1Constructor, id,
             Controller.NO_RESOURCE_FORMAT_STRING.replace("${name}", this.fineName));
-        await this.preDelete(request, {}, resource, id);
+        await this.preDelete(request, (request as any).user, resource, id);
         resource.destroy();
-        await this.postDelete(request, {}, resource);
+        await this.postDelete(request, (request as any).user, resource);
         await this.preResponse(resource);
         return ApiResponse.noContent(reply);
     };
