@@ -1,5 +1,4 @@
 
-import { randomUUID } from "crypto";
 import { FastifyInstance } from "fastify";
 import { Device, IpData } from "../../trace";
 import { IRoute, shouldNotFilter } from "./IRoute";
@@ -36,7 +35,6 @@ export function registerRequestAuditorAdapter(fastify: FastifyInstance, opts: Re
         const audit = {
             extraData,
             isp: IpData.isp,
-            auditId: randomUUID(),
             type: "HTTP.REQUEST",
             ipAddress: request.ip,
             action: request.method,
