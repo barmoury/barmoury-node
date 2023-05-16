@@ -1,6 +1,7 @@
 
-export { FieldUtil } from "./FieldUtil";
-export { CallBack, Logger, BarmouryObject } from "./Types";
+export * from "./Util";
+export * from "./Types";
+export * from "./FieldUtil";
 
 /*
 
@@ -10,5 +11,6 @@ export { CallBack, Logger, BarmouryObject } from "./Types";
 
 */
 export function antPatternToRegex(antPattern: string) {
-    return new RegExp(antPattern.replace("**", "(.)+").replace("?", "(.)").replace("*", "((?!(\/)).)+"));
+    const terminator = !antPattern.includes("**") ? "!((.)+)" : "";
+    return new RegExp(antPattern.replace("**", "(.)+").replace("?", "(.)").replace("*", "((?!(\/)).)+") + terminator);
 }

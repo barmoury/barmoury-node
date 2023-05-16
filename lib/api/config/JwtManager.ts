@@ -1,10 +1,10 @@
 
-import { IRoute } from "./IRoute";
 import { IEncryptor } from "../../crypto";
 import { AccessDeniedError } from "../exception";
+import { IRoute, shouldNotFilter } from "./IRoute";
+import { BarmouryObject, FieldUtil } from "../../util";
 import { FastifyInstance, FastifyRequest } from "fastify";
-import { UserDetails, initUserDetails } from "../model/UserDetails"
-import { BarmouryObject, FieldUtil, antPatternToRegex } from "../../util";
+import { UserDetails, initUserDetails } from "../model/UserDetails";
 
 const fastifyJwt = require('@fastify/jwt');
 
@@ -16,25 +16,13 @@ export interface IJwtOptions {
     prefix?: string;
     authorityPrefix?: string;
     encryptor?: IEncryptor<any>;
-    openUrlPatterns: IRoute[] | string[];
+    openUrlPatterns?: IRoute[] | string[];
     validate?: <T>(request: FastifyRequest, user: UserDetails<T>) => boolean;
-}
-
-function shouldNotFilter(request: FastifyRequest, prefix: string, openUrlPatterns: any[]): boolean {
-    if (!request.routerPath) return false;
-    const method = request.method;
-    const route = (prefix ? "/" : "") + request.routerPath.replace(prefix || "", "");
-    for (const openUrlPattern of openUrlPatterns) {
-        if ((typeof openUrlPattern === "string" && antPatternToRegex(openUrlPattern).test(route))
-            || (openUrlPattern.method === method && antPatternToRegex(openUrlPattern.route).test(route))) {
-            return true;
-        }
-    }
-    return false;
 }
 
 let signInjected = false;
 let registeredFastifyJwt = false;
+
 export function registerJwt(fastify: FastifyInstance, opts: IJwtOptions) {
     if (registeredFastifyJwt) return; registeredFastifyJwt = true;
     const jwtOptions = FieldUtil.cloneObjects(["encryptor", "prefix", "validate", "openUrlPatterns"], opts);
@@ -59,7 +47,7 @@ export function registerJwt(fastify: FastifyInstance, opts: IJwtOptions) {
             };
             signInjected = true;
         }
-        if (shouldNotFilter(request, (opts.prefix || fastify.prefix), opts.openUrlPatterns)) {
+        if (opts.openUrlPatterns && shouldNotFilter(request, (opts.prefix || fastify.prefix), opts.openUrlPatterns)) {
             return;
         }
         await request.jwtVerify();

@@ -44,7 +44,7 @@ export class ErrorAdviser {
     }
 
     processResponse(error: Error, errors: any[], logger?: Logger): any {
-        logger?.error(`[barmoury.ErrorAdviser]`, error.message, error);
+        logger?.error(`[barmoury.ErrorAdviser] ${error.message}`, error);
         return new ApiResponse(errors);
     }
 

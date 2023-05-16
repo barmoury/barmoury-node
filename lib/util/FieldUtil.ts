@@ -138,6 +138,7 @@ export const FieldUtil = {
     },
 
     strFormat(str: string, ...args: any) {
+        if (typeof str !== "string") return str;
         let index = 0;
         return str.replace(/%([a-z])/g, function (match, fmt) {
             index++;

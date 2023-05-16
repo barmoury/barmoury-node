@@ -777,14 +777,14 @@ export class QueryArmoury {
             return { [Op.lte]: value[0] };
         } else if (operator == RequestParamFilter.Operator.LIKE
             || operator == RequestParamFilter.Operator.CONTAINS) {
-            return { [Op.like]: `% ${value[0]}% ` };
+            return { [Op.like]: `%${value[0]}%` };
         } else if (operator == RequestParamFilter.Operator.ILIKE) {
-            return { [Op.iLike]: `% ${value[0]}% ` };
+            return { [Op.iLike]: `%${value[0]}%` };
         } else if (operator == RequestParamFilter.Operator.NOT_LIKE
             || operator == RequestParamFilter.Operator.NOT_CONTAINS) {
-            return { [Op.notLike]: `% ${value[0]}% ` };
+            return { [Op.notLike]: `%${value[0]}%` };
         } else if (operator == RequestParamFilter.Operator.NOT_ILIKE) {
-            return { [Op.notILike]: `% ${value[0]}% ` };
+            return { [Op.notILike]: `%${value[0]}%` };
         } else if (operator == RequestParamFilter.Operator.ENDS_WITH) {
             return { [Op.endsWith]: value };
         } else if (operator == RequestParamFilter.Operator.STARTS_WITH) {

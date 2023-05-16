@@ -24,6 +24,7 @@ export * from "./config/ErrorAdviser";
 export * from "./config/RouteValidator";
 export * from "./controller/Controller";
 export * from "./decorator/RequestMapping";
+export * from "./config/RequestAuditorAdapter";
 export * from "./controller/BactuatorController";
 
 let preHandlerRegistered = false;
@@ -62,7 +63,7 @@ export function registerRoutes(fastify: FastifyInstance, opts: { controller: Con
                     option.schema.body = FieldUtil.mergeObjects(true, option.schema.body, schema);
                 }
                 option.schema.body.type = "object";
-                if ("__bamoury__validation_queries__" in ControllersValidationMap[key]) {
+                if ((key in ControllersValidationMap) && "__bamoury__validation_queries__" in ControllersValidationMap[key]) {
                     if (!(routerPath in ControllersValidatioQueriesMap)) ControllersValidatioQueriesMap[routerPath] = [];
                     for (const group of val.__barmoury_validate_groups) {
                         const validationQueries = ControllersValidationMap[key]["__bamoury__validation_queries__"][group];
