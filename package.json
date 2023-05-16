@@ -9,7 +9,7 @@
     "build": "npx tsc",
     "clean": "rm -Rf dist",
     "watch": "npx npm-watch build",
-    "pack": "npm run clean; npm run build; cp ./{package.json,LICENSE,README.md} dist; cd dist; npm pack",
+    "pack": "bash -c 'npm run clean; npm run build; cp ./{package.json,LICENSE,README.md} dist; cd dist; npm pack'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "files": [
