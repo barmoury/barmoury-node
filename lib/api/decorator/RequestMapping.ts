@@ -6,10 +6,14 @@ export const ControllersRequestMap: BarmouryObject = {};
 
 export interface RequestMappingAttributtes {
 
-    model?: Object;
+    model?: object;
     value?: string;
     request?: Object;
     method?: RequestMethod;
+    bodySchema?: BarmouryObject;
+    querySchema?: BarmouryObject;
+    paramsSchema?: BarmouryObject;
+    headersSchema?: BarmouryObject;
 
 }
 

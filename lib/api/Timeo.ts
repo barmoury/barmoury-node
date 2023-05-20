@@ -58,4 +58,28 @@ export const Timeo = {
         return Math.abs(ageDate.getUTCFullYear() - 1970);
     },
 
+    addDays(a: Date, value: number): Date {
+        return new Date(a.getTime() + (value * (1000 * 60 * 60 * 24)));
+    },
+
+    addHours(a: Date, value: number): Date {
+        return new Date(a.getTime() + (value * (1000 * 60 * 60)));
+    },
+
+    addMinutes(a: Date, value: number): Date {
+        return new Date(a.getTime() + (value * (1000 * 60)));
+    },
+
+    addYears(a: Date, value: number): Date {
+        return new Date(a.getTime() + (value * (1000 * 60 * 60 * 24 * 365)));
+    },
+
+    isPast(date: Date, now: Date = new Date()): boolean {
+        return date.getTime() < now.getTime();
+    },
+
+    isFuture(date: Date, now: Date = new Date()): boolean {
+        return date.getTime() > now.getTime();
+    }
+
 }

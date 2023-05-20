@@ -1,15 +1,21 @@
 
 import { Validator } from "./Validator";
 import { BarmouryObject } from "../util/Types";
-import { ControllersValidationMap, prepareValidationSchema } from "./Validate";
+import { ControllersValidationMap, prepareValidationSchema, registerValidation } from "./Validate";
 import { type } from "os";
+import { ContraintValidationError } from "../api";
 
 export interface ValidateArrayAttributtes {
-    itemType: any;
+    itemType: any; 
     message?: string;
     groups?: string[];
     minItems?: number;
     maxItems?: number;
+    itemValidator?: (sequelize: any, values: any, opt: any) => Promise<boolean>;
+    itemValidators?: {
+        message: string,
+        validate: (sequelize: any, values: any, opt: any) => Promise<boolean>
+    }[];
 }
 
 export function ValidateArray(options: ValidateArrayAttributtes) {
@@ -43,6 +49,29 @@ export function ValidateArray(options: ValidateArrayAttributtes) {
             }
             ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"] = {};
             ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"]["type"] = options.itemType;
+
+
+            if (!options.itemValidators && !options.itemValidator) continue;
+            const message = options.message || "The entry value '{value}' did not pass validation";
+            const itemValidators = [...(options.itemValidators || []), (options.itemValidator ? {
+                message,
+                validate: options.itemValidator
+            } : undefined)];
+            registerValidation(target, group, {
+                message,
+                propertyKey,
+                validate: async (sequelize: any, values: string[], opt: any) => {
+                    for (const value of values) {
+                        for (const itemValidator of itemValidators) {
+                            if (!itemValidator) continue;
+                            if (!await itemValidator.validate!(sequelize, value, opt)) {
+                                throw new ContraintValidationError(itemValidator.message.replace(/{value}+/g, value));
+                            }
+                        }
+                    }
+                    return true;
+                }
+            });
         }
     };
 

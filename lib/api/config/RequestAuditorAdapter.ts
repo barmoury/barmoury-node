@@ -1,17 +1,18 @@
 
-import { FastifyInstance } from "fastify";
 import { Device, IpData } from "../../trace";
 import { IRoute, shouldNotFilter } from "./IRoute";
 import { AuditAttributes, Auditor } from "../../audit";
+import { FastifyInstance, FastifyRequest } from "fastify";
 
 export interface RequestAuditorAdapterOptions {
     prefix?: string;
     hooks?: string[];
     getAuditor: () => Auditor<any>;
     beforeAuditable?: <T>(object: T) => T;
-    openUrlPatterns?: IRoute[] | string[];
+    excludeUrlPatterns?: IRoute[] | string[];
     getIpData: (ipAddress: string) => IpData;
-    resolve?: <T>(audit: AuditAttributes<T>) => AuditAttributes<T>;
+    headerSanitizer?: (headerName: string, value: any) => any;
+    resolve?: <T>(request: FastifyRequest, audit: AuditAttributes<T>) => AuditAttributes<T>;
 }
 
 let RequestAuditorAdapter: any;
@@ -20,15 +21,19 @@ export function registerRequestAuditorAdapter(fastify: FastifyInstance, opts: Re
     if (!opts.hooks || !opts.hooks.length) {
         opts.hooks = ["preValidation"];
     }
+    opts.headerSanitizer = opts.headerSanitizer || ((headerName: string, value: any): any => {
+        if (headerName.includes("authorization") || headerName.includes("key")) return "**********"
+        return value;
+    });
     if (!RequestAuditorAdapter) RequestAuditorAdapter = async (request: any, reply: any) => {
-        if (opts.openUrlPatterns && shouldNotFilter(request, (opts.prefix || fastify.prefix), opts.openUrlPatterns)) {
+        if (opts.excludeUrlPatterns && shouldNotFilter(request, (opts.prefix || fastify.prefix), opts.excludeUrlPatterns)) {
             return;
         }
         const IpData = opts.getIpData(request.ip);
         const extraData: any = {
             parameters: request.query,
             headers: Object.entries(request.headers).reduce((acc: any, value: any[]) => {
-                acc[value[0]] = (value[0].includes("authorization") || value[0].includes("key")) ? "**********" : value[1];
+                acc[value[0]] = opts.headerSanitizer!(value[0], value[1]);
                 return acc;
             }, {}),
         };
@@ -43,7 +48,7 @@ export function registerRequestAuditorAdapter(fastify: FastifyInstance, opts: Re
             device: Device.build(request.headers["user-agent"]),
             auditable: (opts.beforeAuditable && request.body ? opts.beforeAuditable(request.body) : request.body)
         };
-        opts.getAuditor().audit(opts.resolve ? opts.resolve(audit) : audit);
+        opts.getAuditor().audit(opts.resolve ? opts.resolve(request, audit) : audit);
     };
     opts.hooks.forEach((hook: any) => fastify.addHook(hook,  RequestAuditorAdapter));
 }

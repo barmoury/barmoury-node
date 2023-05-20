@@ -6,7 +6,7 @@ import { FastifyInstance, FastifyRequest } from "fastify";
 export interface IRouteValidator {
     prefix?: string;
     routes: IRoute[] | string[];
-    valid: (request: FastifyRequest) => boolean;
+    valid: (request: FastifyRequest) => Promise<boolean>;
 }
 
 let registeredRouteValidators = false;
@@ -25,6 +25,6 @@ export function registerRouteValidators(fastify: FastifyInstance, routeValidator
     fastify.addHook("onRequest", async (request: any, reply) => {
         const valid = mappedRouteValidators[`${request.method}<=#=>${request.routerPath}`]
             || mappedRouteValidators[`ANY<=#=>${request.routerPath}`];
-        if (valid && !valid(request)) throw new RouteValidatorError("Validation failed for the request");
+        if (valid && !(await valid(request))) throw new RouteValidatorError("Validation failed for the request");
     });
 }

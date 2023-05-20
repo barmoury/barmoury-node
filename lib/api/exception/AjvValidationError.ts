@@ -15,7 +15,6 @@ export class AjvValidationError extends Error {
     }
 
     static cleanError(err: BarmouryObject, group: string = "body") {
-        //console.log(">>>>>", err);
         let path = err.instancePath?.substr(1).replace(/\//g, ".");
         let message = err.message;
         if (err.instancePath) path = "." + path + " ";

@@ -15,18 +15,6 @@ export interface StatQueryAttrs {
     columnsAreSnakeCase?: boolean;
 }
 
-export function StatQuery(options?: StatQueryAttrs) {
-
-    return function (target: any) {
-        const key = `${target}`;
-        if (!(key in FieldsStatQueryMap)) FieldsStatQueryMap[key] = {};
-        FieldsStatQueryMap[key]["StatQuery"] =
-            FieldUtil.mergeObjects(false, FieldsStatQueryMap[key]["StatQuery"],
-                barmouryObjectInternalSetStatQueryAttrDefaults(options || {}));
-    };
-
-}
-
 export function barmouryObjectInternalSetStatQueryAttrDefaults(attr: StatQueryAttrs) {
     if (attr.fetchHourly == undefined) attr.fetchHourly = false;
     if (attr.fetchYearly == undefined) attr.fetchYearly = false;
@@ -194,3 +182,16 @@ StatQuery.MedianQuery = MedianQuery;
 StatQuery.AverageQuery = AverageQuery;
 StatQuery.OccurrenceQuery = OccurrenceQuery;
 StatQuery.PercentageChangeQuery = PercentageChangeQuery;
+
+
+export function StatQuery(options?: StatQueryAttrs) {
+
+    return function (target: any) {
+        const key = `${target}`;
+        if (!(key in FieldsStatQueryMap)) FieldsStatQueryMap[key] = {};
+        FieldsStatQueryMap[key]["StatQuery"] =
+            FieldUtil.mergeObjects(false, FieldsStatQueryMap[key]["StatQuery"],
+                barmouryObjectInternalSetStatQueryAttrDefaults(options || {}));
+    };
+
+}
