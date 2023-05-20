@@ -39,6 +39,7 @@ export function registerRoutes(fastify: FastifyInstance, opts: { controller: Con
             ? controllerRequestMapping
             : controllerRequestMapping.value;
     }
+    const routesSet = new Set<string>();
     let konstructor = controller.constructor;
     do {
         Object.getOwnPropertyNames(konstructor.prototype).forEach(name => {
@@ -54,24 +55,36 @@ export function registerRoutes(fastify: FastifyInstance, opts: { controller: Con
                 : val.__barmoury_requestMapping.value || "");
             const method = ((typeof val.__barmoury_requestMapping === "string") ? "get" : val.__barmoury_requestMapping.method || "get");
             const option: BarmouryObject = { schema: {} };
-            const key = `${controllerRequestMapping.request}`;
             const routerPath = `${method.toUpperCase()}__${opts.prefix || ""}${route}`.replace(/([^:]\/)\/+/g, "$1");
-            // autowire the validation
-            if (val.__barmoury_validate_groups) {
-                for (const group of val.__barmoury_validate_groups) {
+            if (routesSet.has(routerPath)) return;
+            routesSet.add(routerPath);
+            // auto wire body validation
+            if (val.__barmoury_validate) {
+                const { model, groups } = val.__barmoury_validate;
+                const key = `${model || controllerRequestMapping.request}`;
+                for (const group of groups) {
                     const schema = ((ControllersValidationMap[key] || {}).body || {})[group];
                     option.schema.body = FieldUtil.mergeObjects(true, option.schema.body, schema);
                 }
                 option.schema.body.type = "object";
                 if ((key in ControllersValidationMap) && "__bamoury__validation_queries__" in ControllersValidationMap[key]) {
                     if (!(routerPath in ControllersValidatioQueriesMap)) ControllersValidatioQueriesMap[routerPath] = [];
-                    for (const group of val.__barmoury_validate_groups) {
+                    for (const group of groups) {
                         const validationQueries = ControllersValidationMap[key]["__bamoury__validation_queries__"][group];
                         if (!validationQueries) continue;
                         ControllersValidatioQueriesMap[routerPath] = FieldUtil.mergeArrays(ControllersValidatioQueriesMap[routerPath], validationQueries);
                     }
                 }
+                if (val.__barmoury_requestMapping.bodySchema) {
+                    option.schema.body = FieldUtil.mergeObjects(true, option.schema.body, val.__barmoury_requestMapping.bodySchema);
+                }
             }
+            // auto wire params validation
+            if (val.__barmoury_requestMapping.paramsSchema) option.schema.params = val.__barmoury_requestMapping.paramsSchema;
+            // auto wire query validation
+            if (val.__barmoury_requestMapping.querySchema) option.schema.querystring = val.__barmoury_requestMapping.querySchema;
+            // auto wire headers validation
+            if (val.__barmoury_requestMapping.headersSchema) option.schema.headers = val.__barmoury_requestMapping.headersSchema;
             // auto wire the @Secured roles check
             if (val.__barmoury_secured) {
                 const valFn = val.bind(controller);
@@ -130,9 +143,10 @@ export function registerControllers(fastify: FastifyInstance, opts: BarmouryObje
                 const id = (request.params as any).id;
                 const validationQueries = ControllersValidatioQueriesMap[key];
                 if (validationQueries.length) for (const validationQuery of validationQueries) {
-                    const value = ((request.body as any) || {})[validationQuery.propertyKey];
+                    const body = (request.body as any) || {};
+                    const value = body[validationQuery.propertyKey];
                     if (value == undefined) continue;
-                    if (!(await validationQuery.validate(opts.sequelize, value, { resourceId: id }))) {
+                    if (!(await validationQuery.validate(opts.sequelize, value, { body, resourceId: id }))) {
                         throw new ContraintValidationError(validationQuery.message.replace(/{value}+/g, value));
                     }
                 }

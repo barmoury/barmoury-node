@@ -1,6 +1,6 @@
 {
   "name": "barmoury",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "The super Backend Toolkits 🔨 🔧 🚀 for Node Typescript",
   "main": "index.js",
   "module": "index.js",
@@ -9,7 +9,7 @@
     "build": "npx tsc",
     "clean": "rm -Rf dist",
     "watch": "npx npm-watch build",
-    "pack": "npm run clean; npm run build; cp ./{package.json,LICENSE,README.md} dist; cd dist; npm pack",
+    "pack": "bash -c 'npm run clean; npm run build; cp ./{package.json,LICENSE,README.md} dist; cd dist; npm pack'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "files": [

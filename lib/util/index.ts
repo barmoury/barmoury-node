@@ -11,6 +11,8 @@ export * from "./FieldUtil";
 
 */
 export function antPatternToRegex(antPattern: string) {
+    antPattern = antPattern.replace(/:([\w])+/g, "**");
     const terminator = !antPattern.includes("**") ? "!((.)+)" : "";
-    return new RegExp(antPattern.replace("**", "(.)+").replace("?", "(.)").replace("*", "((?!(\/)).)+") + terminator);
+    const regex = antPattern.replace(/\*\*/g, "(.)+").replace(/\?/g, "(.)").replace(/\*/g, "((?!(\/)).)+") + terminator;
+    return new RegExp(regex);
 }

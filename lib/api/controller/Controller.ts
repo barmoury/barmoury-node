@@ -68,7 +68,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
     }
 
     @RequestMapping({ value: "/stat", method: RequestMethod.GET })
-    async stat(request: FastifyRequest, reply: FastifyReply) {
+    async stat(request: FastifyRequest, reply: FastifyReply): Promise<any> {
         if (await this.shouldNotHonourMethod(RouteMethod.STAT)) {
             throw new RouteMethodNotSupportedError("The GET '**/stat' route is not supported for this resource");
         }
@@ -82,7 +82,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
     };
 
     @RequestMapping({ method: RequestMethod.GET })
-    async index(request: FastifyRequest, reply: FastifyReply) {
+    async index(request: FastifyRequest, reply: FastifyReply): Promise<any> {
         if (await this.shouldNotHonourMethod(RouteMethod.INDEX)) {
             throw new RouteMethodNotSupportedError("The GET '**/' route is not supported for this resource");
         }
@@ -97,7 +97,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
 
     @Validate()
     @RequestMapping({ method: RequestMethod.POST })
-    async store(request: FastifyRequest, reply: FastifyReply) {
+    async store(request: FastifyRequest, reply: FastifyReply): Promise<any> {
         if (await this.shouldNotHonourMethod(RouteMethod.STORE)) {
             throw new RouteMethodNotSupportedError("The POST '**/' route is not supported for this resource");
         }
@@ -117,7 +117,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
     };
 
     @RequestMapping({ value: "/multiple", method: RequestMethod.POST })
-    async storeMultiple(request: FastifyRequest, reply: FastifyReply) {
+    async storeMultiple(request: FastifyRequest, reply: FastifyReply): Promise<any> {
         if (await this.shouldNotHonourMethod(RouteMethod.STORE_MULTIPLE)) {
             throw new RouteMethodNotSupportedError("The POST '**/multiple' route is not supported for this resource");
         }
@@ -140,7 +140,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
     };
 
     @RequestMapping({ value: "/:id", method: RequestMethod.GET })
-    async show(request: FastifyRequest, reply: FastifyReply) {
+    async show(request: FastifyRequest, reply: FastifyReply): Promise<any> {
         if (await this.shouldNotHonourMethod(RouteMethod.SHOW)) {
             throw new RouteMethodNotSupportedError("The GET '**/{id}' route is not supported for this resource");
         }
@@ -157,7 +157,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
 
     @Validate({ groups: ["UPDATE"] })
     @RequestMapping({ value: "/:id", method: RequestMethod.PATCH })
-    async update(request: FastifyRequest, reply: FastifyReply) {
+    async update(request: FastifyRequest, reply: FastifyReply): Promise<any> {
         if (await this.shouldNotHonourMethod(RouteMethod.UPDATE)) {
             throw new RouteMethodNotSupportedError("The PATCH '**/{id}' route is not supported for this resource");
         }
@@ -180,7 +180,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
     };
 
     @RequestMapping({ value: "/:id", method: RequestMethod.DELETE })
-    async destroy(request: FastifyRequest, reply: FastifyReply) {
+    async destroy(request: FastifyRequest, reply: FastifyReply): Promise<any> {
         if (await this.shouldNotHonourMethod(RouteMethod.DESTROY)) {
             throw new RouteMethodNotSupportedError("The DELETE '**/{id}' route is not supported for this resource");
         }

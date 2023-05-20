@@ -53,7 +53,7 @@ export default abstract class BactuatorController {
     @RequestMapping({ value: "/introspect", method: RequestMethod.GET })
     async introspect(request: FastifyRequest, reply: FastifyReply) {
         if (this.introspectMap == null) {
-            await this.resolveControllers("https://charon.com");
+            await this.resolveControllers(process.env.SERVICE_BASE_URL || "");
             await this.resolveResources();
             await this.resolveIntrospect();
         }

@@ -13,6 +13,7 @@ export abstract class Auditor<T> {
     abstract preAudit(audit: AuditAttributes<T>): void;
 
     async audit(audit: AuditAttributes<T>) {
+        this.preAudit(audit);
         this.bufferSize++;
         if (Util.cacheWriteAlong(this.bufferSize, this.dateLastFlushed, this.getCache(), audit)) {
             this.bufferSize = 0;

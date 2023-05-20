@@ -12,8 +12,9 @@ export function shouldNotFilter(request: FastifyRequest, prefix: string, openUrl
     const method = request.method;
     const route = (prefix ? "/" : "") + request.url.replace(prefix || "", "");
     for (const openUrlPattern of openUrlPatterns) {
-        if ((typeof openUrlPattern === "string" && antPatternToRegex(openUrlPattern).test(route))
-            || (openUrlPattern.method === method && antPatternToRegex(openUrlPattern.route).test(route))) {
+        if ((typeof openUrlPattern === "string" && (openUrlPattern === route || antPatternToRegex(openUrlPattern).test(route)))
+            || (openUrlPattern.method === method && (openUrlPattern.route === route
+                || antPatternToRegex(openUrlPattern.route).test(route)))) {
             return true;
         }
     }

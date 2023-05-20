@@ -20,7 +20,10 @@ export interface ValidatorAttr {
 export function Validate(attr?: ValidateAttributtes) {
 
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-        descriptor.value.__barmoury_validate_groups = attr?.groups || ["CREATE"];
+        descriptor.value.__barmoury_validate = {
+            model: attr?.model,
+            groups: attr?.groups || ["CREATE"]
+        };
     };
 
 }
