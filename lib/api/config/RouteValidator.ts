@@ -1,12 +1,12 @@
 
 import { IRoute } from "./IRoute";
 import { RouteValidatorError } from "../exception";
-import { FastifyInstance, FastifyRequest } from "fastify";
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 
 export interface IRouteValidator {
     prefix?: string;
     routes: IRoute[] | string[];
-    valid: (request: FastifyRequest) => Promise<boolean>;
+    valid: (request: FastifyRequest, reply: FastifyReply) => Promise<boolean>;
 }
 
 let registeredRouteValidators = false;
@@ -22,9 +22,9 @@ export function registerRouteValidators(fastify: FastifyInstance, routeValidator
             mappedRouteValidators[key] = routeValidator.valid;
         }
     }
-    fastify.addHook("onRequest", async (request: any, reply) => {
+    fastify.addHook("onRequest", async (request: any, reply: any) => {
         const valid = mappedRouteValidators[`${request.method}<=#=>${request.routerPath}`]
             || mappedRouteValidators[`ANY<=#=>${request.routerPath}`];
-        if (valid && !(await valid(request))) throw new RouteValidatorError("Validation failed for the request");
+        if (valid && !(await valid(request, reply))) throw new RouteValidatorError("Validation failed for the request");
     });
 }
