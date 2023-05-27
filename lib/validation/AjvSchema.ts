@@ -11,14 +11,12 @@ export interface AjvSchemaAttributtes {
 export function AjvSchema(attr?: BarmouryObject | AjvSchemaAttributtes) {
 
     return function (target: any) {
+        const key = `${target}`;
+        const groups = attr?.groups || ["CREATE"];
         const schema = (attr && attr.schema) ? attr.schema : attr || {};
-        if (attr && attr.groups?.length) {
-            for (const group of attr.groups) {
-                prepareObjectAjvSchema(Object.getPrototypeOf(target), schema, group);
-            }
-            return;
+        for (const group of groups) {
+            prepareObjectAjvSchema(key, schema, group);
         }
-        prepareObjectAjvSchema(Object.getPrototypeOf(target), schema);
     };
 
 }
