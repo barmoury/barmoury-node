@@ -51,22 +51,24 @@ export function prepareObjectAjvSchema(key: any, schema: any = {}, group: string
         ControllersValidationMap[key]["body"][group] = {};
     }
     ControllersValidationMap[key]["body"][group] = FieldUtil.mergeObjects(true, ControllersValidationMap[key]["body"][group], schema);
-}
-
-export function prepareValidationSchema(key: any, propertyKey: string, target: any, group: string) {
-    prepareObjectAjvSchema(key, {}, group); // TODO pick base on validator type
     if (!("required" in ControllersValidationMap[key]["body"][group])) {
         ControllersValidationMap[key]["body"][group]["required"] = [];
     }
     if (!("properties" in ControllersValidationMap[key]["body"][group])) {
         ControllersValidationMap[key]["body"][group]["properties"] = {};
     }
+}
+
+export function prepareValidationSchema(key: any, propertyKey: string | undefined, target: any, group: string) {
+    prepareObjectAjvSchema(key, {}, group); // TODO pick base on validator type
+    if (!propertyKey) return;
     if (!(propertyKey in ControllersValidationMap[key]["body"][group]["properties"])) {
         ControllersValidationMap[key]["body"][group]["properties"][propertyKey] = {};
     }
     if (!("type" in ControllersValidationMap[key]["body"][group]["properties"][propertyKey])) {
-        ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["type"] =
-            [Reflect.getMetadata("design:type", target, propertyKey).name.toLowerCase()];
+        const reflectionType = Reflect.getMetadata("design:type", target, propertyKey);
+        const type = ControllersValidationMap[`${reflectionType}`] ? "object" : reflectionType.name.toLowerCase();
+        ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["type"] = type;
     }
 }
 

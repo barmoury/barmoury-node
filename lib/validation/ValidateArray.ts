@@ -1,16 +1,15 @@
 
-import { Validator } from "./Validator";
-import { BarmouryObject } from "../util/Types";
 import { ControllersValidationMap, prepareValidationSchema, registerValidation } from "./Validate";
-import { type } from "os";
 import { ContraintValidationError } from "../api";
+import { Util } from "../util";
 
 export interface ValidateArrayAttributtes {
-    itemType: any; 
+    itemType: any;
     message?: string;
     groups?: string[];
     minItems?: number;
     maxItems?: number;
+    nestedArrayValues?: boolean;
     itemValidator?: (sequelize: any, values: any, opt: any) => Promise<boolean>;
     itemValidators?: {
         message: string,
@@ -18,7 +17,13 @@ export interface ValidateArrayAttributtes {
     }[];
 }
 
-export function ValidateArray(options: ValidateArrayAttributtes) {
+function getStoredValidation(group: string, key: any) {
+    const item = ((ControllersValidationMap[`${key}`] || {}).body || {})[group] || {};
+    item.type = "object";
+    return item;
+}
+
+export const ValidateArray = (options: ValidateArrayAttributtes) => {
 
     return function (target: any, propertyKey: string) {
         const key = `${target.constructor}`;
@@ -29,18 +34,27 @@ export function ValidateArray(options: ValidateArrayAttributtes) {
             if (options.minItems) ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["minItems"] = options.minItems;
             if (options.maxItems) ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["maxItems"] = options.maxItems;
             if (typeof options.itemType === "function") {
-                const itemType = ((ControllersValidationMap[`${options.itemType}`] || {}).body || {})[group] || {};
-                itemType.type = "object";
-                ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"] = itemType;
+                if (Util.isClass(options.itemType)) {
+                    ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"] =
+                        getStoredValidation(group, options.itemType);
+                    return;
+                }
+                options.itemType(target, propertyKey);
+                const items = ControllersValidationMap[key]["body"][group]["properties"][propertyKey];
+                ControllersValidationMap[key]["body"][group]["properties"][propertyKey] = { type: "array", items };
                 return;
             } else if (typeof options.itemType === "object" && options.itemType instanceof Array) {
                 const ajvValues = options.itemType
                     .map(item => {
                         if (typeof item == "function") {
-                            item = ((ControllersValidationMap[`${item}`] || {}).body || {})[group] || {};
-                            item.type = "object";
+                            if (Util.isClass(item)) return getStoredValidation(group, item);
+                            const cachedSchema = ControllersValidationMap[key]["body"][group]["properties"][propertyKey];
+                            options.itemType(target, propertyKey);
+                            const items = ControllersValidationMap[key]["body"][group]["properties"][propertyKey];
+                            ControllersValidationMap[key]["body"][group]["properties"][propertyKey] = cachedSchema;
+                            return items;
                         }
-                        return item;
+                        return { type: item };
                     });
                 ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"] = {
                     anyOf: ajvValues
@@ -76,3 +90,4 @@ export function ValidateArray(options: ValidateArrayAttributtes) {
     };
 
 }
+

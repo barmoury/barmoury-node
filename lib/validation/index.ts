@@ -1,5 +1,6 @@
 
 export * from "./Type";
+export * from "./Valid";
 export * from "./Required";
 export * from "./Validate";
 export * from "./AjvSchema";
