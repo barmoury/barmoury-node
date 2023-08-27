@@ -25,7 +25,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
     static readonly ACCESS_DENIED = "Access denied. You do not have the required role to access this endpoint";
 
     async preResponse(entity: T1) { }
-    async preQuery(request: FastifyRequest, authentication: any) { }
+    async preQuery(request: FastifyRequest, authentication: any): Promise<FastifyRequest> { return request; }
     async preCreate(request: FastifyRequest, authentication: any, entity: T1, entityRequest: T2) { }
     async postCreate(request: FastifyRequest, authentication: any, entity: T1) { }
     async preUpdate(request: FastifyRequest, authentication: any, entity: T1, entityRequest: T2) { }
@@ -76,7 +76,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
         if (roles.length > 0 && !(request as any).authoritiesValues?.some((r: string) => roles.includes(r))) {
             throw new AccessDeniedError(Controller.ACCESS_DENIED);
         }
-        await this.preQuery(request, (request as any).user);
+        request = await this.preQuery(request, (request as any).user);
         return await this.processResponse(reply, 200, await this.queryArmoury.statWithQuery(request, this.t1Constructor),
             `${this.fineName} stat fetched successfully`);
     };
@@ -90,7 +90,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
         if (roles.length > 0 && !(request as any).authoritiesValues?.some((r: string) => roles.includes(r))) {
             throw new AccessDeniedError(Controller.ACCESS_DENIED);
         }
-        await this.preQuery(request, (request as any).user);
+        request = await this.preQuery(request, (request as any).user);
         const resources = await this.queryArmoury.pageQuery(request, this.t1Constructor, this.springLike);
         return await this.processResponse(reply, 200, resources, `${this.fineName} list fetched successfully`);
     };
