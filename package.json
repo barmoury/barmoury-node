@@ -1,6 +1,6 @@
 {
   "name": "barmoury",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "The super Backend Toolkits 🔨 🔧 🚀 for Node Typescript",
   "main": "index.js",
   "module": "index.js",

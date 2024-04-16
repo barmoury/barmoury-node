@@ -1,5 +1,5 @@
 
-import { ControllersValidationMap, prepareValidationSchema, registerValidation } from "./Validate";
+import { ControllersValidationMap, prepareValidationSchema, registerValidation } from "./Validated";
 import { ContraintValidationError } from "../api";
 import { Util } from "../util";
 

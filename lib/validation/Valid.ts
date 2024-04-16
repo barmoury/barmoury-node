@@ -1,6 +1,6 @@
 
 import "reflect-metadata";
-import { ControllersValidationMap, prepareValidationSchema } from "./Validate";
+import { ControllersValidationMap, prepareValidationSchema } from "./Validated";
 
 export interface ValidAttributtes {
     value?: any;

@@ -1,4 +1,4 @@
-import { Cache } from "../";
+import { Cache } from "..";
 
 export class ListCacheImpl<T> extends Cache<T> {
 

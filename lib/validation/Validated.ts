@@ -17,7 +17,7 @@ export interface ValidatorAttr {
     validate: (sequelize: any, value: any, opt: any) => Promise<boolean>;
 }
 
-export function Validate(attr?: ValidateAttributtes) {
+export function Validated(attr?: ValidateAttributtes) {
 
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
         descriptor.value.__barmoury_validate = {

@@ -1,7 +1,7 @@
 
 import { Validator } from "./Validator";
 import { BarmouryObject } from "../util/Types";
-import { ControllersValidationMap, prepareValidationSchema } from "./Validate";
+import { ControllersValidationMap, prepareValidationSchema } from "./Validated";
 
 export interface TypeAttributtes {
     groups?: string[];

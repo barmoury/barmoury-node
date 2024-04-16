@@ -5,7 +5,7 @@ import { FastifyInstance } from "fastify";
 import { Model, Request } from "./model/Model";
 import { BarmouryObject } from "../util/Types";
 import { RequestMethod } from "./enum/RequestMethod";
-import { ControllersValidationMap } from "../validation/Validate";
+import { ControllersValidationMap } from "../validation/Validated";
 import { Controller, RouteMethod } from "./controller/Controller";
 import { ControllersRequestMap } from "./decorator/RequestMapping";
 import { AccessDeniedError, ContraintValidationError } from "./exception";
@@ -29,6 +29,41 @@ export * from "./controller/BactuatorController";
 
 let preHandlerRegistered = false;
 const ControllersValidatioQueriesMap: BarmouryObject = {};
+
+export function registerControllers(fastify: FastifyInstance, opts: BarmouryObject, controllers: Controller<Model<any, any>, Request>[]) {
+    for (const controller of controllers) {
+        fastify.register(registerController, { controller, ...opts });
+    }
+    if (opts.bacuator) {
+        if (opts.sequelize) opts.bacuator.sequelize = opts.sequelize;
+        fastify.register(registerController, { controller: opts.bacuator, ...opts });
+    }
+
+    // register queries validations
+    if (!preHandlerRegistered) {
+        preHandlerRegistered = true;
+        if (opts.sequelize) fastify.addHook("preHandler", async (request, reply) => {
+            const key = request.method + "__" + request.routeOptions.url;
+            if (key in ControllersValidatioQueriesMap) {
+                const id = (request.params as any).id;
+                const validationQueries = ControllersValidatioQueriesMap[key];
+                if (validationQueries.length) for (const validationQuery of validationQueries) {
+                    const body = (request.body as any) || {};
+                    const value = body[validationQuery.propertyKey];
+                    if (value == undefined) continue;
+                    if (!(await validationQuery.validate(opts.sequelize, value, { body, resourceId: id }))) {
+                        throw new ContraintValidationError(validationQuery.message.replace(/{value}+/g, value));
+                    }
+                }
+            }
+        });
+    }
+}
+
+export function registerController(fastify: FastifyInstance, opts: BarmouryObject, done: any) {
+    registerRoutes(fastify, opts);
+    done();
+}
 
 export function registerRoutes(fastify: FastifyInstance, opts: { controller: Controller<Model<any, any>, Request>, prefix?: string } | BarmouryObject) {
     let controllerRoute = "";
@@ -55,7 +90,7 @@ export function registerRoutes(fastify: FastifyInstance, opts: { controller: Con
                 : val.__barmoury_requestMapping.value || "");
             const method = ((typeof val.__barmoury_requestMapping === "string") ? "get" : val.__barmoury_requestMapping.method || "get");
             const option: BarmouryObject = { schema: {} };
-            const routerPath = `${method.toUpperCase()}__${opts.prefix || ""}${route}`.replace(/([^:]\/)\/+/g, "$1");
+            const routerPath = `${method.toUpperCase()}__${opts.prefix ?? ""}${route}`.replace(/([^:]\/)\/+/g, "$1");
             if (routesSet.has(routerPath)) return;
             routesSet.add(routerPath);
             // auto wire body validation
@@ -118,39 +153,4 @@ export function registerRoutes(fastify: FastifyInstance, opts: { controller: Con
         });
         konstructor = Object.getPrototypeOf(konstructor);
     } while (konstructor && konstructor.name && konstructor.name !== "Object");
-}
-
-export function registerController(fastify: FastifyInstance, opts: BarmouryObject, done: any) {
-    registerRoutes(fastify, opts);
-    done();
-}
-
-export function registerControllers(fastify: FastifyInstance, opts: BarmouryObject, controllers: Controller<Model<any, any>, Request>[]) {
-    for (const controller of controllers) {
-        fastify.register(registerController, { controller, ...opts });
-    }
-    if (opts.bacuator) {
-        if (opts.sequelize) opts.bacuator.sequelize = opts.sequelize;
-        fastify.register(registerController, { controller: opts.bacuator, ...opts });
-    }
-
-    // register queries validations
-    if (!preHandlerRegistered) {
-        preHandlerRegistered = true;
-        if (opts.sequelize) fastify.addHook("preHandler", async (request, reply) => {
-            const key = request.method + "__" + request.routerPath;
-            if (key in ControllersValidatioQueriesMap) {
-                const id = (request.params as any).id;
-                const validationQueries = ControllersValidatioQueriesMap[key];
-                if (validationQueries.length) for (const validationQuery of validationQueries) {
-                    const body = (request.body as any) || {};
-                    const value = body[validationQuery.propertyKey];
-                    if (value == undefined) continue;
-                    if (!(await validationQuery.validate(opts.sequelize, value, { body, resourceId: id }))) {
-                        throw new ContraintValidationError(validationQuery.message.replace(/{value}+/g, value));
-                    }
-                }
-            }
-        });
-    }
 }

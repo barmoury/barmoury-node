@@ -15,7 +15,7 @@ export interface ModelInput extends Optional<ModelAttributes, 'id'> { }
 
 export class Model<T1 extends ModelAttributes, T2 extends ModelInput> extends SequelizeModel<T1, T2> implements ModelAttributes {
 
-    @RequestParamFilter({ operator: RequestParamFilter?.Operator?.NONE }) @StatQuery.PercentageChangeQuery() public id?: number;
+    @RequestParamFilter({ operator: RequestParamFilter?.Operator?.NONE }) @StatQuery.PercentageChangeQuery() public id?: any;
     @RequestParamFilter({ operator: RequestParamFilter?.Operator?.RANGE }) public createdAt?: Date | undefined;
     @RequestParamFilter({ operator: RequestParamFilter?.Operator?.RANGE }) public updatedAt?: Date | undefined;
 
@@ -29,5 +29,5 @@ export class Model<T1 extends ModelAttributes, T2 extends ModelInput> extends Se
 (Model as any).fineName = "BarmouryModel";
 
 export class Request {
-    updateEntityId?: Number;
+    ___BARMOURY_UPDATE_ENTITY_ID___?: Number;
 }

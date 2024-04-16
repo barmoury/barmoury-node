@@ -1,5 +1,5 @@
 
-import { registerValidation } from "./Validate";
+import { registerValidation } from "./Validated";
 
 export interface ColumnUniqueAttributtes {
     table: string;

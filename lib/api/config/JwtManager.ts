@@ -27,7 +27,7 @@ export function registerJwt(fastify: FastifyInstance, opts: IJwtOptions) {
     if (registeredFastifyJwt) return; registeredFastifyJwt = true;
     const jwtOptions = FieldUtil.cloneObjects(["encryptor", "prefix", "validate", "openUrlPatterns"], opts);
     fastify.register(fastifyJwt, jwtOptions);
-    fastify.addHook("onRequest", async (request: any, reply) => {
+    fastify.addHook("onRequest", async (request: any, _) => {
         if (!signInjected && (fastify as any)?.jwt) {
             const realSign = (fastify as any).jwt.sign;
             (fastify as any).jwt.sign = (...params: any[]) => {

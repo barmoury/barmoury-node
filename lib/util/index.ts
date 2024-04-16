@@ -10,9 +10,9 @@ export * from "./FieldUtil";
 ** matches zero or more directories in a path
 
 */
-export function antPatternToRegex(antPattern: string) {
-    antPattern = antPattern.replace(/:([\w])+/g, "**");
-    const terminator = !antPattern.includes("**") ? "!((.)+)" : "";
-    const regex = antPattern.replace(/\*\*/g, "(.)+").replace(/\?/g, "(.)").replace(/\*/g, "((?!(\/)).)+") + terminator;
+export function patternToRegex(pattern: string) {
+    pattern = pattern.replace(/:([\w])+/g, "**");
+    const terminator = !pattern.includes("**") ? "!((.)+)" : "";
+    const regex = pattern.replace(/\*\*/g, "(.)+").replace(/\?/g, "(.)").replace(/\*/g, "((?!(\/)).)+") + terminator;
     return new RegExp(regex);
 }

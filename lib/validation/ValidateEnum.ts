@@ -1,12 +1,12 @@
 
 import { Validator } from "./Validator";
 import { BarmouryObject } from "../util/Types";
-import { ControllersValidationMap, prepareValidationSchema } from "./Validate";
+import { ControllersValidationMap, prepareValidationSchema } from "./Validated";
 import { FieldUtil } from "../util/FieldUtil";
 
 export interface ValidateEnumAttributtes {
 
-    enum: any;
+    value: any;
     only?: string[];
     groups?: string[];
     excludes?: string[];
@@ -20,11 +20,11 @@ export function ValidateEnum(options: ValidateEnumAttributtes) {
         const key = `${target.constructor}`;
         for (const group of groups) {
             prepareValidationSchema(key, propertyKey, target, group);
-            const enums = Object.keys(options.enum).reduce((acc: BarmouryObject, key: string) => {
+            const enums = Object.keys(options.value).reduce((acc: BarmouryObject, key: string) => {
                 if (!isNaN(Number(key))) return acc;
                 if (options.only && !options.only.includes(key)) return acc;
                 if (options.excludes && options.excludes.includes(key)) acc;
-                const value = options.enum[key];
+                const value = options.value[key];
                 const type = typeof value;
                 if (!acc.type.includes(type)) acc.type.push(type);
                 acc.enum.push(value);

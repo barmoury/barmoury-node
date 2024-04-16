@@ -41,28 +41,6 @@ export default abstract class BactuatorController {
         return ApiResponse.build(httpStatus, data, message).r(reply);
     }
 
-    @RequestMapping({ value: "/health", method: RequestMethod.GET })
-    async healthCheck(request: FastifyRequest, reply: FastifyReply) {
-        const response: BarmouryObject = {};
-        const serviceIsOk = this.isServiceOk();
-        response["status"] = (serviceIsOk ? "ok" : "not ok");
-        return await this.processResponse(reply, (serviceIsOk ? 200 : 500), response,
-            `health check successful`);
-    }
-
-    @RequestMapping({ value: "/introspect", method: RequestMethod.GET })
-    async introspect(request: FastifyRequest, reply: FastifyReply) {
-        if (this.introspectMap == null) {
-            await this.resolveControllers(process.env.SERVICE_BASE_URL || "");
-            await this.resolveResources();
-            await this.resolveIntrospect();
-        }
-        this.introspectMap["users"] = await this.userStatistics();
-        this.introspectMap["earnings"] = await this.earningStatistics();
-        this.introspectMap[this.resolveCasing("downloadCounts")] = await this.downloadsCount();
-        return await this.processResponse(reply, 200, this.introspectMap, "introspect data fetched successfully");
-    }
-
     async executeQueryForResult(request: FastifyRequest, queryString: string, includeColumnNames: boolean) {
         try {
             if (queryString.toUpperCase().includes("SELECT") && !this.principalCan(request, "SELECT")) {
@@ -92,30 +70,6 @@ export default abstract class BactuatorController {
         } catch (err: any) {
             throw new InvalidBactuatorQueryException(err.message);
         }
-    }
-
-    @RequestMapping({ value: "/database/query/single", method: RequestMethod.POST })
-    async executeSingleQueries(request: FastifyRequest, reply: FastifyReply) {
-        const body = request.body as any;
-        const result = await this.executeQueryForResult(request, body.query,
-            body[this.resolveCasing("includeColumnNames")] || false);
-        return await this.processResponse(reply, 200, result, BactuatorController.SQL_QUERY_SUCCESSFUL);
-    }
-
-    @RequestMapping({ value: "/database/query/multiple", method: RequestMethod.POST })
-    async executeMultipleQueries(request: FastifyRequest, reply: FastifyReply) {
-        const body = request.body as any;
-        const response: BarmouryObject = {};
-        const includeColumnNames = body[this.resolveCasing("includeColumnNames")] || false;
-        for (const queryString of (body.queries || [])) {
-            try {
-                const result = await this.executeQueryForResult(request, queryString, includeColumnNames);
-                response[queryString] = result;
-            } catch (err: any) {
-                response[queryString] = err.message;
-            }
-        }
-        return await this.processResponse(reply, 200, response, BactuatorController.SQL_QUERY_SUCCESSFUL);
     }
 
     resolveIntrospect() {
@@ -258,6 +212,54 @@ export default abstract class BactuatorController {
         const requestParamFilterProps: any = {};
         requestParamFilterProps[operator] = this.resolveCasing(fieldName);
         return requestParamFilterProps;
+    }
+
+    @RequestMapping({ value: "/health", method: RequestMethod.GET })
+    async healthCheck(request: FastifyRequest, reply: FastifyReply) {
+        const response: BarmouryObject = {};
+        const serviceIsOk = this.isServiceOk();
+        response["status"] = (serviceIsOk ? "ok" : "not ok");
+        return await this.processResponse(reply, (serviceIsOk ? 200 : 500), response,
+            `health check successful`);
+    }
+
+    @RequestMapping({ value: "/introspect", method: RequestMethod.GET })
+    async introspect(request: FastifyRequest, reply: FastifyReply) {
+        if (this.introspectMap == null) {
+            await this.resolveControllers(process.env.SERVICE_BASE_URL || "");
+            await this.resolveResources();
+            await this.resolveIntrospect();
+        }
+        this.introspectMap["users"] = await this.userStatistics();
+        this.introspectMap["earnings"] = await this.earningStatistics();
+        this.introspectMap[this.resolveCasing("downloadCounts")] = await this.downloadsCount();
+        return await this.processResponse(reply, 200, this.introspectMap, "introspect data fetched successfully");
+    }
+
+    @RequestMapping({ value: "/database/query/single", method: RequestMethod.POST })
+    async executeSingleQueries(request: FastifyRequest, reply: FastifyReply) {
+        const body = request.body as any;
+        let includeColumnNames = body["includeColumnNames"];
+        if (!includeColumnNames) includeColumnNames = body[this.resolveCasing("includeColumnNames")];
+        const result = await this.executeQueryForResult(request, body.query, (includeColumnNames ?? false));
+        return await this.processResponse(reply, 200, result, BactuatorController.SQL_QUERY_SUCCESSFUL);
+    }
+
+    @RequestMapping({ value: "/database/query/multiple", method: RequestMethod.POST })
+    async executeMultipleQueries(request: FastifyRequest, reply: FastifyReply) {
+        const body = request.body as any;
+        const response: BarmouryObject = {};
+        let includeColumnNames = body["includeColumnNames"];
+        if (!includeColumnNames) includeColumnNames = body[this.resolveCasing("includeColumnNames")];
+        for (const queryString of (body.queries ?? [])) {
+            try {
+                const result = await this.executeQueryForResult(request, queryString, includeColumnNames ?? false);
+                response[queryString] = result;
+            } catch (err: any) {
+                response[queryString] = err.message;
+            }
+        }
+        return await this.processResponse(reply, 200, response, BactuatorController.SQL_QUERY_SUCCESSFUL);
     }
 
 }

@@ -40,18 +40,18 @@ export function ErrorAdvise<T>(attr: ErrorAdviseAttributtes<T>) {
 export class ErrorAdviser {
 
     constructor() {
-        this.processResponse.bind(this);
+        this.processResponse = this.processResponse.bind(this);
     }
 
     processResponse(error: Error, errors: any[], logger?: Logger): any {
-        logger?.error(`[barmoury.ErrorAdviser] ${error.message}`, error);
+        logger?.error(`[barmoury.ErrorAdviser] ${errors[0]}`, error);
         if (errors && errors.length == 1 && errors[0].includes("\n")) errors = errors[0].split("\n");
         return new ApiResponse(errors);
     }
 
-    @ErrorAdvise({ errorNames: ["Error", "ValidationError", "DatabaseError", "UniqueConstraintError"] })
+    @ErrorAdvise({ errorNames: ["Error", "ValidationError", "DatabaseError", "UniqueConstraintError", "SequelizeValidationError"] })
     default(error: Error, options?: BarmouryObject) {
-        return this.processResponse(error, [options?.msg || error.message], options?.logger);
+        return this.processResponse(error, [options?.msg ?? error.message], options?.logger);
     }
 
     @ErrorAdvise({ errorNames: ["AjvValidationError"], statusCode: 400 })
@@ -96,15 +96,21 @@ export class ErrorAdviser {
         return this.default(error, options);
     }
 
-    @ErrorAdvise({ errorNames: [ "FST_JWT_NO_AUTHORIZATION_IN_HEADER" ], statusCode: 401 })
+    @ErrorAdvise({ errorNames: ["FST_JWT_NO_AUTHORIZATION_IN_HEADER"], statusCode: 401 })
     missingAuthToken(error: Error, options?: any) {
         const msg: string = "Authorization token is missing";
         return this.default(error, { ...options, msg });
     }
 
-    @ErrorAdvise({ errorNames: [ "FST_JWT_AUTHORIZATION_TOKEN_INVALID" ], statusCode: 401 })
+    @ErrorAdvise({ errorNames: ["FST_JWT_AUTHORIZATION_TOKEN_INVALID"], statusCode: 401 })
     unauthorizedErrors(error: Error, options?: any) {
         const msg: string = "Invalid Authorization token";
+        return this.default(error, { ...options, msg });
+    }
+
+    @ErrorAdvise({ errorNames: ["FST_JWT_AUTHORIZATION_TOKEN_EXPIRED"], statusCode: 401 })
+    expiredTokenErrors(error: Error, options?: any) {
+        const msg: string = "The authorization token has expired";
         return this.default(error, { ...options, msg });
     }
 
@@ -117,9 +123,19 @@ export function registerErrorAdvisers<T>(fastify: FastifyInstance, options: Barm
     fastify.setErrorHandler(function (error: Error, request: FastifyRequest, reply: FastifyReply) {
         const errorKey = (error as any).validation ? "AjvValidationError" : error.constructor.name;
         const errorAdvice = ErrorAdviserMap[(Fastify.errorCodes as any)[(error as any).code]]
-            || ErrorAdviserMap[(error as any).code] || ErrorAdviserMap[errorKey] || ErrorAdviserMap["___UnknownError___"];
+            ?? ErrorAdviserMap[(error as any).code] ?? ErrorAdviserMap[errorKey] ?? ErrorAdviserMap["___UnknownError___"];
+
+        // TODO properly handle cors https://github.com/fastify/fastify-cors
+        reply.header("Access-Control-Allow-Origin", "*");
+        reply.header("Access-Control-Allow-Methods", "*");
+        reply.header("Access-Control-Allow-Headers", "*");
+        reply.header("Access-Control-Max-Age", 1728000);
+        reply.header("Access-Control-Allow-Credentials", true);
+        // end
         if (errorAdvice) {
-            reply.code(errorAdvice.statusCode || (error as any).statusCode || 500).send(errorAdvice.fn(error, options));
+            const response = errorAdvice.fn(error, options);
+            if (response.name === "FastifyError") delete response["name"];
+            reply.code(errorAdvice.statusCode ?? (error as any).statusCode ?? 500).send({ ...response });
         } else {
             reply.send(error);
         }

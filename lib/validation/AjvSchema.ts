@@ -1,7 +1,7 @@
 
 import { Validator } from "./Validator";
 import { BarmouryObject } from "../util/Types";
-import { ControllersValidationMap, prepareObjectAjvSchema, prepareValidationSchema } from "./Validate";
+import { ControllersValidationMap, prepareObjectAjvSchema, prepareValidationSchema } from "./Validated";
 
 export interface AjvSchemaAttributtes {
     groups?: string[];

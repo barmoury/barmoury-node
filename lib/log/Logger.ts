@@ -59,4 +59,9 @@ export abstract class Logger {
         process.exit(-1199810);
     }
 
+    panic(format: string, ...args: any[]): any {
+        this.log({ level: Log.Level.PANIC, content: this.formatContent(format, ...args) });
+        process.exit(-1199811);
+    }
+
 }

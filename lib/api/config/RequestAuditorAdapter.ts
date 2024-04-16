@@ -44,7 +44,7 @@ export function registerRequestAuditorAdapter(fastify: FastifyInstance, opts: Re
             ipAddress: request.ip,
             action: request.method,
             location: IpData.location,
-            source: request.routerPath,
+            source: request.routeOptions.url,
             device: Device.build(request.headers["user-agent"]),
             auditable: (opts.beforeAuditable && request.body ? opts.beforeAuditable(request.body) : request.body)
         };
