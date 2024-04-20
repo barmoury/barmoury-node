@@ -76,7 +76,7 @@ export class ErrorAdviser {
         return this.default(error, options);
     }
 
-    @ErrorAdvise({ errorNames: ["RouteValidatorError"], statusCode: 401 })
+    @ErrorAdvise({ errorNames: ["RouteValidatorError", "TokenError"], statusCode: 401 })
     unAuthorized(error: Error, options?: BarmouryObject) {
         return this.default(error, options);
     }
@@ -96,7 +96,13 @@ export class ErrorAdviser {
         return this.default(error, options);
     }
 
-    @ErrorAdvise({ errorNames: ["FST_JWT_NO_AUTHORIZATION_IN_HEADER"], statusCode: 401 })
+    @ErrorAdvise({ errorNames: ["MalformedTokenError"], statusCode: 401 })
+    malformedAuthToken(error: Error, options?: any) {
+        const msg: string = "The authorization token is malformed";
+        return this.default(error, { ...options, msg });
+    }
+
+    @ErrorAdvise({ errorNames: ["FST_JWT_NO_AUTHORIZATION_IN_HEADER", "MissingTokenError"], statusCode: 401 })
     missingAuthToken(error: Error, options?: any) {
         const msg: string = "Authorization token is missing";
         return this.default(error, { ...options, msg });
@@ -108,7 +114,7 @@ export class ErrorAdviser {
         return this.default(error, { ...options, msg });
     }
 
-    @ErrorAdvise({ errorNames: ["FST_JWT_AUTHORIZATION_TOKEN_EXPIRED"], statusCode: 401 })
+    @ErrorAdvise({ errorNames: ["FST_JWT_AUTHORIZATION_TOKEN_EXPIRED", "ExpiredTokenError"], statusCode: 401 })
     expiredTokenErrors(error: Error, options?: any) {
         const msg: string = "The authorization token has expired";
         return this.default(error, { ...options, msg });

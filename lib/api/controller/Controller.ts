@@ -122,7 +122,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
         await this.validateRouteAccess(request, RouteMethod.INDEX, "The GET '**/' route is not supported for this resource");
         request = await this.preQuery(await this.sanitizeAndGetRequestParameters(request, (request as any).user), (request as any).user);
         const resources = await this.queryArmoury.pageQuery(request, this.t1Constructor, await this.resolveSubEntities(), this.pageable);
-        await this.preResponses(resources);
+        await this.preResponses((resources as any).rows ?? (resources as any).content ?? resources);
         return await this.processResponse(reply, 200, resources, `${this.fineName} list fetched successfully`);
     };
 

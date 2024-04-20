@@ -53,18 +53,15 @@ export default abstract class BactuatorController {
                 throw new AccessDeniedError(FieldUtil.strFormat(BactuatorController.SQL_QUERY_ERROR_MESSAGE, "INSERT"));
             } else if (queryString.toUpperCase().includes("TRUNCATE") && !this.principalCan(request, "TRUNCATE")) {
                 throw new AccessDeniedError(FieldUtil.strFormat(BactuatorController.SQL_QUERY_ERROR_MESSAGE, "TRUNCATE"));
+            } else if (!this.principalCan(request, "UNKNOWN")) {
+                throw new AccessDeniedError(FieldUtil.strFormat(BactuatorController.SQL_QUERY_ERROR_MESSAGE, "UNKNOWN"));
             }
             const [results, _] = await this.sequelize.query(queryString);
-            if (!this.springLike) return results;
-            let res;
-            if (queryString.toUpperCase().includes("SELECT")) {
-                res = [];
-                if (includeColumnNames) res.push(Object.keys(results[0]));
-                for (const result of results) {
-                    res.push(Object.values(result));
-                }
-            } else {
-                res = results;
+            if (!this.springLike || !queryString.toUpperCase().includes("SELECT")) return results;
+            const res = [];
+            if (includeColumnNames) res.push(Object.keys(results[0]));
+            for (const result of results) {
+                res.push(Object.values(result));
             }
             return res;
         } catch (err: any) {
@@ -226,7 +223,7 @@ export default abstract class BactuatorController {
     @RequestMapping({ value: "/introspect", method: RequestMethod.GET })
     async introspect(request: FastifyRequest, reply: FastifyReply) {
         if (this.introspectMap == null) {
-            await this.resolveControllers(process.env.SERVICE_BASE_URL || "");
+            await this.resolveControllers(process.env.SERVICE_BASE_URL ?? "");
             await this.resolveResources();
             await this.resolveIntrospect();
         }

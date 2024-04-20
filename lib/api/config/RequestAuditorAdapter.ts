@@ -10,7 +10,7 @@ export interface RequestAuditorAdapterOptions {
     getAuditor: () => Auditor<any>;
     beforeAuditable?: <T>(object: T) => T;
     excludeUrlPatterns?: IRoute[] | string[];
-    getIpData: (ipAddress: string) => IpData;
+    getIpData: (ipAddress: string) => Promise<IpData>;
     headerSanitizer?: (headerName: string, value: any) => any;
     resolve?: <T>(request: FastifyRequest, audit: AuditAttributes<T>) => AuditAttributes<T>;
 }
@@ -29,7 +29,7 @@ export function registerRequestAuditorAdapter(fastify: FastifyInstance, opts: Re
         if (opts.excludeUrlPatterns && shouldNotFilter(request, (opts.prefix || fastify.prefix), opts.excludeUrlPatterns)) {
             return;
         }
-        const IpData = opts.getIpData(request.ip);
+        const IpData = await opts.getIpData(request.ip);
         const extraData: any = {
             parameters: request.query,
             headers: Object.entries(request.headers).reduce((acc: any, value: any[]) => {
@@ -44,7 +44,7 @@ export function registerRequestAuditorAdapter(fastify: FastifyInstance, opts: Re
             ipAddress: request.ip,
             action: request.method,
             location: IpData.location,
-            source: request.routeOptions.url,
+            source: request.routeOptions.url ?? "",
             device: Device.build(request.headers["user-agent"]),
             auditable: (opts.beforeAuditable && request.body ? opts.beforeAuditable(request.body) : request.body)
         };

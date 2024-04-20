@@ -5,7 +5,7 @@ export abstract class Cache<T> {
     abstract cache(data: T): void;
 
     maxBufferSize(): number {
-        return 150;
+        return 4; // 150
     }
 
     intervalBeforeFlush(): number {
