@@ -1,7 +1,7 @@
 
-import { registerValidation } from "./Validate";
+import { registerValidation } from "./Validated";
 
-export interface ColumnExistsAttributtes {
+export interface ColumnExistsAttributes {
     table: string;
     column: string;
     message: string;
@@ -9,7 +9,7 @@ export interface ColumnExistsAttributtes {
     whereClause?: string;
 }
 
-export function ColumnExists(attr: ColumnExistsAttributtes) {
+export function ColumnExists(attr: ColumnExistsAttributes) {
 
     return function (target: any, propertyKey: string) {
         const groups = attr.groups || ["CREATE"];

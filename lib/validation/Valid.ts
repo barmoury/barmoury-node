@@ -1,13 +1,13 @@
 
 import "reflect-metadata";
-import { ControllersValidationMap, prepareValidationSchema } from "./Validate";
+import { ControllersValidationMap, prepareValidationSchema } from "./Validated";
 
-export interface ValidAttributtes {
+export interface ValidAttributes {
     value?: any;
     groups?: string[];
 }
 
-export function Valid(options?: ValidAttributtes) {
+export function Valid(options?: ValidAttributes) {
 
     return function (target: any, propertyKey: string) {
         const groups = options?.groups || ["CREATE"];

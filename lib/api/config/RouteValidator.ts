@@ -9,22 +9,24 @@ export interface IRouteValidator {
     valid: (request: FastifyRequest, reply: FastifyReply) => Promise<boolean>;
 }
 
+export type RouteValidator = IRouteValidator;
+
 let registeredRouteValidators = false;
-export function registerRouteValidators(fastify: FastifyInstance, routeValidators: IRouteValidator[]) {
+export function registerRouteValidators(fastify: FastifyInstance, routeValidators: RouteValidator[]) {
     if (registeredRouteValidators) return; registeredRouteValidators = true;
     const mappedRouteValidators: any = {}; // map lookup is faster
     for (const routeValidator of routeValidators) {
         const prefix = (routeValidator.prefix ? `${routeValidator.prefix}/` : "");
         for (const route of routeValidator.routes) {
             const router = typeof route == "string" ? { method: "ANY", route } : route;
-            const routerPath = `${prefix}${router.route}`.replace(/([^:]\/)\/+/g, "$1");
-            const key = `${router.method}<=#=>${routerPath}`;
+            const path = `${prefix}${router.route}`.replace(/([^:]\/)\/+/g, "$1");
+            const key = `${router.method}<=#=>${path}`;
             mappedRouteValidators[key] = routeValidator.valid;
         }
     }
     fastify.addHook("onRequest", async (request: any, reply: any) => {
-        const valid = mappedRouteValidators[`${request.method}<=#=>${request.routerPath}`]
-            || mappedRouteValidators[`ANY<=#=>${request.routerPath}`];
+        const valid = mappedRouteValidators[`${request.method}<=#=>${request.routeOptions.url}`]
+            ?? mappedRouteValidators[`ANY<=#=>${request.routeOptions.url}`];
         if (valid && !(await valid(request, reply))) throw new RouteValidatorError("Validation failed for the request");
     });
 }

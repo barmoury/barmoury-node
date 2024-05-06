@@ -1,56 +1,39 @@
 
 import { IEncryptor } from "../../crypto";
+import { createVerifier } from "fast-jwt";
 import { AccessDeniedError } from "../exception";
 import { IRoute, shouldNotFilter } from "./IRoute";
 import { BarmouryObject, FieldUtil } from "../../util";
 import { FastifyInstance, FastifyRequest } from "fastify";
 import { UserDetails, initUserDetails } from "../model/UserDetails";
-
-const fastifyJwt = require('@fastify/jwt');
+import { MalformedTokenError, ExpiredTokenError, MissingTokenError } from "../exception";
 
 export const BARMOURY_DATA = "BARMOURY_DATA";
 export const BARMOURY_AUTHORITIES = "BARMOURY_AUTHORITIES";
 
 export interface IJwtOptions {
-    secret: string;
     prefix?: string;
     authorityPrefix?: string;
     encryptor?: IEncryptor<any>;
+    secrets: { [index: string]: string; };
     openUrlPatterns?: IRoute[] | string[];
-    validate?: <T>(request: FastifyRequest, user: UserDetails<T>) => boolean;
+    validate?: <T>(request: FastifyRequest, group: string, user: UserDetails<T>) => boolean;
 }
 
-let signInjected = false;
 let registeredFastifyJwt = false;
 
 export function registerJwt(fastify: FastifyInstance, opts: IJwtOptions) {
     if (registeredFastifyJwt) return; registeredFastifyJwt = true;
-    const jwtOptions = FieldUtil.cloneObjects(["encryptor", "prefix", "validate", "openUrlPatterns"], opts);
-    fastify.register(fastifyJwt, jwtOptions);
-    fastify.addHook("onRequest", async (request: any, reply) => {
-        if (!signInjected && (fastify as any)?.jwt) {
-            const realSign = (fastify as any).jwt.sign;
-            (fastify as any).jwt.sign = (...params: any[]) => {
-                if (("id" in params[0]) && ("data" in params[0]) && ("authoritiesValues" in params[0])) {
-                    delete params[0]["authorityPrefix"];
-                    params[0]["sub"] = params[0]["id"]; delete params[0]["id"];
-                    params[0][BARMOURY_DATA] = params[0]["data"]; delete params[0]["data"];
-                    params[0][BARMOURY_AUTHORITIES] = params[0]["authoritiesValues"]; delete params[0]["authoritiesValues"];
-                }
-                if (opts.encryptor) {
-                    const payload: any = params[0];
-                    const encryptedPayload: BarmouryObject = {};
-                    Object.keys(payload).forEach(key => encryptedPayload[key] = opts.encryptor?.encrypt(payload[key]));
-                    params[0] = encryptedPayload;
-                }
-                return realSign.bind((fastify as any).jwt)(...params);
-            };
-            signInjected = true;
-        }
+    fastify.addHook("onRequest", async (request: any, _) => {
         if (opts.openUrlPatterns && shouldNotFilter(request, (opts.prefix || fastify.prefix), opts.openUrlPatterns)) {
             return;
         }
-        await request.jwtVerify();
+        let authotization = (request.headers.authorization as string ?? "").split(" ");
+        if (authotization.length < 2) {
+            throw new MissingTokenError("authorization token is missing");
+        }
+        const result = findActiveToken(authotization[1], opts.secrets);
+        request.user = result.payload;
         if (opts.encryptor) {
             const encryptedPayload = request.user;
             Object.keys(encryptedPayload).forEach(key =>
@@ -65,9 +48,33 @@ export function registerJwt(fastify: FastifyInstance, opts: IJwtOptions) {
                 payload[BARMOURY_DATA],
                 authorityPrefix);
             request.authoritiesValues = request.user.authoritiesValues;
-            if (opts.validate && !opts.validate(request, request.user)) {
+            if (opts.validate && !opts.validate(request, result.key, request.user)) {
                 throw new AccessDeniedError("User details validation failed");
             }
         }
     })
+}
+
+function findActiveToken(authToken: string, secrets: { [index: string]: string; }): { key: string; payload: any; } {
+    const secretsEntries = Object.entries(secrets);
+    let index = 0, length = secretsEntries.length;
+    for (const [key, value] of secretsEntries) {
+        try {
+            return {
+                key,
+                payload: createVerifier({ key: value })(authToken)
+            };
+        } catch (error: any) {
+            if (error.message.includes("expired")) {
+                throw new ExpiredTokenError(error.message);
+            } else if (error.message.includes("malformed")) {
+                throw new MalformedTokenError(error.message);
+            }
+            if (index == (length-1)) {
+                throw error;
+            }
+        }
+        index++;
+    }
+    return { key: "", payload: null }
 }

@@ -1,6 +1,6 @@
 
 import { FastifyRequest } from "fastify";
-import { antPatternToRegex } from "../../util";
+import { patternToRegex } from "../../util";
 
 export interface IRoute {
     route: string;
@@ -10,11 +10,11 @@ export interface IRoute {
 export function shouldNotFilter(request: FastifyRequest, prefix: string, openUrlPatterns: any[]): boolean {
     if (!request.url) return false;
     const method = request.method;
-    const route = (prefix ? "/" : "") + request.url.replace(prefix || "", "");
+    const route = (prefix ? "/" : "") + request.url.replace(prefix ?? "", "");
     for (const openUrlPattern of openUrlPatterns) {
-        if ((typeof openUrlPattern === "string" && (openUrlPattern === route || antPatternToRegex(openUrlPattern).test(route)))
+        if ((typeof openUrlPattern === "string" && (openUrlPattern === route || patternToRegex(openUrlPattern).test(route)))
             || (openUrlPattern.method === method && (openUrlPattern.route === route
-                || antPatternToRegex(openUrlPattern.route).test(route)))) {
+                || patternToRegex(openUrlPattern.route).test(route)))) {
             return true;
         }
     }

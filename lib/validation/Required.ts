@@ -1,14 +1,12 @@
 
-import { Validator } from "./Validator";
-import { BarmouryObject } from "../util/Types";
-import { ControllersValidationMap, prepareValidationSchema } from "./Validate";
+import { ControllersValidationMap, prepareValidationSchema } from "./Validated";
 
-export interface RequiredAttributtes {
+export interface RequiredAttributes {
     message?: string;
     groups?: string[];
 }
 
-export function Required(options?: RequiredAttributtes) {
+export function Required(options?: RequiredAttributes) {
 
     return function (target: any, propertyKey: string) {
         const groups = options?.groups || ["CREATE"];

@@ -16,20 +16,22 @@ export class QueryArmoury {
 
     sqlInterface: SqlInterface;
     static PERCENTAGE_CHANGE_RELAY_KEY = "___percentage_change____";
+    static BARMOURY_RAW_SQL_PARAMETER_KEY = "___BARMOURY__RAW__SQL___";
 
     constructor(sqlInterface: SqlInterface) {
         this.sqlInterface = sqlInterface;
     }
 
-    async pageQuery<T>(request: FastifyRequest, clazz: (new (...args: any[]) => Model<any, any>), springLike: boolean = false) {
+    async pageQuery<T>(request: FastifyRequest, clazz: (new (...args: any[]) => Model<any, any>), resolveSubEntities: boolean,
+        pageable: boolean = false, logging?: any) {
         const query = (request.query as any);
         const joinTables: BarmouryObject = {};
         const pageFilter = this.buildPageFilter(query);
         const requestFields = this.resolveQueryFields(clazz, request, joinTables);
         const filter = FieldUtil.mergeObjects(true, FieldUtil.mergeObjects(false,
             this.buildWhereFilter(requestFields, joinTables), pageFilter));
-        const result = await (clazz as any).findAndCountAll(filter);
-        return (springLike ? this.makeResultSpringy(result, filter) : result);
+        const result = await (clazz as any).findAndCountAll(filter, logging);
+        return (pageable ? this.paginateResult(result, filter) : result);
     }
 
     async statWithQuery<T>(request: FastifyRequest, clazz: (new (...args: any[]) => Model<any, any>)) {
@@ -777,14 +779,14 @@ export class QueryArmoury {
             return { [Op.lte]: value[0] };
         } else if (operator == RequestParamFilter.Operator.LIKE
             || operator == RequestParamFilter.Operator.CONTAINS) {
-            return { [Op.like]: `%${value[0]}%` };
+            return { [Op.like]: sequelize.literal(`'%${value[0]}%'`) };
         } else if (operator == RequestParamFilter.Operator.ILIKE) {
-            return { [Op.iLike]: `%${value[0]}%` };
+            return { [Op.iLike]: sequelize.literal(`'%${value[0]}%'`) };
         } else if (operator == RequestParamFilter.Operator.NOT_LIKE
             || operator == RequestParamFilter.Operator.NOT_CONTAINS) {
-            return { [Op.notLike]: `%${value[0]}%` };
+            return { [Op.notLike]: sequelize.literal(`'%${value[0]}%'`) };
         } else if (operator == RequestParamFilter.Operator.NOT_ILIKE) {
-            return { [Op.notILike]: `%${value[0]}%` };
+            return { [Op.notILike]: sequelize.literal(`'%${value[0]}%'`) };
         } else if (operator == RequestParamFilter.Operator.ENDS_WITH) {
             return { [Op.endsWith]: value };
         } else if (operator == RequestParamFilter.Operator.STARTS_WITH) {
@@ -798,73 +800,93 @@ export class QueryArmoury {
         } else if (operator == RequestParamFilter.Operator.OBJECT_EQ) {
             return {
                 [Op.or]: {
-                    [Op.like]: sequelize.literal(`'%"${objectField}":${value[0]}%'`),
-                    [Op.like]: sequelize.literal(`'%"${objectField}":${value[0]}}'`)
+                    [Op.like]: [
+                        sequelize.literal(`'%"${objectField}":${value[0]}%'`),
+                        sequelize.literal(`'%"${objectField}":${value[0]}}'`)
+                    ],
                 }
             };
         } else if (operator == RequestParamFilter.Operator.OBJECT_NE) {
             return {
                 [Op.or]: {
-                    [Op.notLike]: sequelize.literal(`'%"${objectField}":${value[0]}%'`),
-                    [Op.notLike]: sequelize.literal(`'%"${objectField}":${value[0]}}'`)
+                    [Op.notLike]: [
+                        sequelize.literal(`'%"${objectField}":${value[0]}%'`),
+                        sequelize.literal(`'%"${objectField}":${value[0]}}'`)
+                    ]
                 }
             };
         } else if (operator == RequestParamFilter.Operator.OBJECT_STR_EQ) {
             return {
                 [Op.or]: {
-                    [Op.like]: sequelize.literal(`'%"${objectField}":"${value[0]}"%'`),
-                    [Op.like]: sequelize.literal(`'%"${objectField}":"${value[0]}"}'`)
+                    [Op.like]: [
+                        sequelize.literal(`'%"${objectField}":"${value[0]}"%'`),
+                        sequelize.literal(`'%"${objectField}":"${value[0]}"}'`)
+                    ]
                 }
             };
         } else if (operator == RequestParamFilter.Operator.OBJECT_STR_NE) {
             return {
                 [Op.or]: {
-                    [Op.notLike]: sequelize.literal(`'%"${objectField}":"${value[0]}"%'`),
-                    [Op.notLike]: sequelize.literal(`'%"${objectField}":"${value[0]}"}'`)
+                    [Op.notLike]: [
+                        sequelize.literal(`'%"${objectField}":"${value[0]}"%'`),
+                        sequelize.literal(`'%"${objectField}":"${value[0]}"}'`)
+                    ]
                 }
             };
         } else if (operator == RequestParamFilter.Operator.OBJECT_LIKE
             || operator == RequestParamFilter.Operator.OBJECT_CONTAINS) {
             return {
                 [Op.or]: {
-                    [Op.like]: sequelize.literal(`'%"${objectField}":%${value[0]}%,%'`),
-                    [Op.like]: sequelize.literal(`'%"${objectField}":%${value[0]}%}'`),
+                    [Op.like]: [
+                        sequelize.literal(`'%"${objectField}":%${value[0]}%,%'`),
+                        sequelize.literal(`'%"${objectField}":%${value[0]}%}'`)
+                    ]
                 }
             };
         } else if (operator == RequestParamFilter.Operator.OBJECT_NOT_LIKE
             || operator == RequestParamFilter.Operator.OBJECT_NOT_CONTAINS) {
             return {
                 [Op.or]: {
-                    [Op.notLike]: sequelize.literal(`'%"${objectField}":%${value[0]}%,%'`),
-                    [Op.notLike]: sequelize.literal(`'%"${objectField}":%${value[0]}%})'`)
+                    [Op.notLike]: [
+                        sequelize.literal(`'%"${objectField}":%${value[0]}%,%'`),
+                        sequelize.literal(`'%"${objectField}":%${value[0]}%})'`)
+                    ]
                 }
             };
         } else if (operator == RequestParamFilter.Operator.OBJECT_ENDS_WITH) {
             return {
                 [Op.or]: {
-                    [Op.like]: sequelize.literal(`'%"${objectField}":%${value[0]},%'`),
-                    [Op.like]: sequelize.literal(`'%"${objectField}":%${value[0]}}'`)
+                    [Op.like]: [
+                        sequelize.literal(`'%"${objectField}":%${value[0]},%'`),
+                        sequelize.literal(`'%"${objectField}":%${value[0]}}'`)
+                    ]
                 }
             };
         } else if (operator == RequestParamFilter.Operator.OBJECT_STARTS_WITH) {
             return {
                 [Op.or]: {
-                    [Op.like]: sequelize.literal(`'%"${objectField}":${value[0]}%,%'`),
-                    [Op.like]: sequelize.literal(`'%"${objectField}":${value[0]}%}'`)
+                    [Op.like]: [
+                        sequelize.literal(`'%"${objectField}":${value[0]}%,%'`),
+                        sequelize.literal(`'%"${objectField}":${value[0]}%}'`)
+                    ]
                 }
             };
         } else if (operator == RequestParamFilter.Operator.OBJECT_STR_ENDS_WITH) {
             return {
                 [Op.or]: {
-                    [Op.like]: sequelize.literal(`'%"${objectField}":\"%${value[0]}",%'`),
-                    [Op.like]: sequelize.literal(`'%"${objectField}":\"%${value[0]}"}'`)
+                    [Op.like]: [
+                        sequelize.literal(`'%"${objectField}":\"%${value[0]}",%'`),
+                        sequelize.literal(`'%"${objectField}":\"%${value[0]}"}'`)
+                    ]
                 }
             };
         } else if (operator == RequestParamFilter.Operator.OBJECT_STR_STARTS_WITH) {
             return {
                 [Op.or]: {
-                    [Op.like]: sequelize.literal(`'%"${objectField}":"${value[0]}%",%'`),
-                    [Op.like]: sequelize.literal(`'%"${objectField}":"${value[0]}%"}'`)
+                    [Op.like]: [
+                        sequelize.literal(`'%"${objectField}":"${value[0]}%",%'`),
+                        sequelize.literal(`'%"${objectField}":"${value[0]}%"}'`)
+                    ]
                 }
             };
         } else if (operator == RequestParamFilter.Operator.ENTITY) {
@@ -874,20 +896,20 @@ export class QueryArmoury {
     }
 
     buildPageFilter(query: BarmouryObject) {
-        let sorts = query.sort || [];
+        let sorts = query.sort ?? [];
         const limit = query.size ? parseInt(query.size) : undefined;
         if (typeof sorts === "string") {
             sorts = [sorts];
         }
         const pageFilter = {
             limit,
-            offset: ((query.page || 1) - 1) * (limit || 10),
+            offset: ((query.page ?? 1) - 1) * (limit ?? 10),
             order: sorts.map((sort: string) => sort.split(","))
         };
         return pageFilter;
     }
 
-    makeResultSpringy(result: BarmouryObject, filter: BarmouryObject) {
+    paginateResult(result: BarmouryObject, filter: BarmouryObject) {
         const count = result["count"];
         const content = result["rows"];
         const sorted = filter.order && filter.order.length;
@@ -911,20 +933,27 @@ export class QueryArmoury {
             totalPages: Math.ceil(count / filter.limit),
             totalElements: count,
             first: filter.offset == 0,
-            size: (filter.limit || 10),
+            size: (filter.limit ?? 10),
             number: pageNumber,
             sort: {
                 empty: !sorted,
                 sorted: !!sorted,
                 unsorted: !sorted
             },
-            numberOfElements: count,
+            numberOfElements: content.length,
             empty: count == 0
         };
     }
 
     async getResourceById<T>(clazz: (new (...args: any[]) => T), id: any, message: string): Promise<T> {
         const resource = await (clazz as any).findByPk(id);
+        if (resource) return resource;
+        throw new EntityNotFoundError(message);
+    }
+
+    async getResourceByColumn<T>(clazz: (new (...args: any[]) => T), column: string, id: any, message: string): Promise<T> {
+        const where: any = {}; where[column] = id;
+        const resource = await (clazz as any).findOne({ where });
         if (resource) return resource;
         throw new EntityNotFoundError(message);
     }

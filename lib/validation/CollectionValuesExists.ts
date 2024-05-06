@@ -1,7 +1,7 @@
 
-import { registerValidation } from "./Validate";
+import { registerValidation } from "./Validated";
 
-export interface CollectionValuesExistsAttributtes {
+export interface CollectionValuesExistsAttributes {
     table: string;
     column: string;
     message: string;
@@ -9,7 +9,7 @@ export interface CollectionValuesExistsAttributtes {
     whereClause?: string;
 }
 
-export function CollectionValuesExists(attr: CollectionValuesExistsAttributtes) {
+export function CollectionValuesExists(attr: CollectionValuesExistsAttributes) {
 
     return function (target: any, propertyKey: string) {
         const groups = attr.groups || ["CREATE"];

@@ -10,7 +10,7 @@ export interface RequestAuditorAdapterOptions {
     getAuditor: () => Auditor<any>;
     beforeAuditable?: <T>(object: T) => T;
     excludeUrlPatterns?: IRoute[] | string[];
-    getIpData: (ipAddress: string) => IpData;
+    getIpData: (ipAddress: string) => Promise<IpData>;
     headerSanitizer?: (headerName: string, value: any) => any;
     resolve?: <T>(request: FastifyRequest, audit: AuditAttributes<T>) => AuditAttributes<T>;
 }
@@ -21,15 +21,15 @@ export function registerRequestAuditorAdapter(fastify: FastifyInstance, opts: Re
     if (!opts.hooks || !opts.hooks.length) {
         opts.hooks = ["preValidation"];
     }
-    opts.headerSanitizer = opts.headerSanitizer || ((headerName: string, value: any): any => {
-        if (headerName.includes("authorization") || headerName.includes("key")) return "**********"
+    opts.headerSanitizer = opts.headerSanitizer ?? ((headerName: string, value: any): any => {
+        if (headerName.includes("authorization") || headerName.includes("key")) return "**********";
         return value;
     });
     if (!RequestAuditorAdapter) RequestAuditorAdapter = async (request: any, reply: any) => {
         if (opts.excludeUrlPatterns && shouldNotFilter(request, (opts.prefix || fastify.prefix), opts.excludeUrlPatterns)) {
             return;
         }
-        const IpData = opts.getIpData(request.ip);
+        const ipData = await opts.getIpData(request.ip);
         const extraData: any = {
             parameters: request.query,
             headers: Object.entries(request.headers).reduce((acc: any, value: any[]) => {
@@ -39,12 +39,12 @@ export function registerRequestAuditorAdapter(fastify: FastifyInstance, opts: Re
         };
         const audit = {
             extraData,
-            isp: IpData.isp,
+            isp: ipData.isp,
             type: "HTTP.REQUEST",
             ipAddress: request.ip,
             action: request.method,
-            location: IpData.location,
-            source: request.routerPath,
+            location: ipData.location,
+            source: request.routeOptions.url ?? "",
             device: Device.build(request.headers["user-agent"]),
             auditable: (opts.beforeAuditable && request.body ? opts.beforeAuditable(request.body) : request.body)
         };

@@ -9,6 +9,7 @@ export enum Level {
     ERROR = "ERROR",
     TRACE = "TRACE",
     FATAL = "FATAL",
+    PANIC = "PANIC",
     VERBOSE = "VERBOSE"
 }
 

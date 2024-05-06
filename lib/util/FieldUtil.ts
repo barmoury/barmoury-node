@@ -127,7 +127,8 @@ export const FieldUtil = {
     },
 
     toSnakeCase(str: string): string {
-        return (str || "").replace(/[A-Z]+/g, letter => `_${letter.toLowerCase()}`);
+        let value = (str || "").replace(/[A-Z]+/g, letter => `_${letter.toLowerCase()}`);
+        return value[0] == "_" ? value.substring(1) : value;
     },
 
     toSnakeCase2(str: string): string {
