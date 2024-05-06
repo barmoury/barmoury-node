@@ -19,7 +19,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/barmoury/barmoury-ts.git"
+    "url": "git+https://github.com/barmoury/barmoury-node.git"
   },
   "keywords": [
     "api",
@@ -34,9 +34,9 @@
   "author": "Azeez Adewale",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/barmoury/barmoury-ts/issues"
+    "url": "https://github.com/barmoury/barmoury-node/issues"
   },
-  "homepage": "https://barmoury.github.io/barmoury-ts",
+  "homepage": "https://barmoury.github.io/barmoury-node",
   "devDependencies": {
     "@types/node": "^18.15.11",
     "typescript": "^5.0.4"
