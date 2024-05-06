@@ -8,7 +8,7 @@ import { RequestMethod } from "./enum/RequestMethod";
 import { ControllersValidationMap } from "../validation/Validated";
 import { Controller, RouteMethod } from "./controller/Controller";
 import { ControllersRequestMap } from "./decorator/RequestMapping";
-import { AccessDeniedError, ContraintValidationError } from "./exception";
+import { AccessDeniedError, ConstraintValidationError } from "./exception";
 
 
 export * from "./Timeo";
@@ -28,7 +28,7 @@ export * from "./config/RequestAuditorAdapter";
 export * from "./controller/BactuatorController";
 
 let preHandlerRegistered = false;
-const ControllersValidatioQueriesMap: BarmouryObject = {};
+const ControllersValidationQueriesMap: BarmouryObject = {};
 
 export function registerControllers(fastify: FastifyInstance, opts: BarmouryObject, controllers: Controller<Model<any, any>, Request>[]) {
     for (const controller of controllers) {
@@ -44,15 +44,15 @@ export function registerControllers(fastify: FastifyInstance, opts: BarmouryObje
         preHandlerRegistered = true;
         if (opts.sequelize) fastify.addHook("preHandler", async (request, reply) => {
             const key = request.method + "__" + request.routeOptions.url;
-            if (key in ControllersValidatioQueriesMap) {
+            if (key in ControllersValidationQueriesMap) {
                 const id = (request.params as any).id;
-                const validationQueries = ControllersValidatioQueriesMap[key];
+                const body = (request.body as any) ?? {};
+                const validationQueries = ControllersValidationQueriesMap[key];
                 if (validationQueries.length) for (const validationQuery of validationQueries) {
-                    const body = (request.body as any) || {};
                     const value = body[validationQuery.propertyKey];
                     if (value == undefined) continue;
                     if (!(await validationQuery.validate(opts.sequelize, value, { body, resourceId: id }))) {
-                        throw new ContraintValidationError(validationQuery.message.replace(/{value}+/g, value));
+                        throw new ConstraintValidationError(validationQuery.message.replace(/{value}+/g, value));
                     }
                 }
             }
@@ -96,18 +96,18 @@ export function registerRoutes(fastify: FastifyInstance, opts: { controller: Con
             // auto wire body validation
             if (val.__barmoury_validate) {
                 const { model, groups } = val.__barmoury_validate;
-                const key = `${model || controllerRequestMapping.request}`;
+                const key = `${model ?? controllerRequestMapping.request}`;
                 for (const group of groups) {
-                    const schema = ((ControllersValidationMap[key] || {}).body || {})[group];
+                    const schema = ((ControllersValidationMap[key] ?? {}).body ?? {})[group];
                     option.schema.body = FieldUtil.mergeObjects(true, option.schema.body, schema);
                 }
                 option.schema.body.type = "object";
-                if ((key in ControllersValidationMap) && "__bamoury__validation_queries__" in ControllersValidationMap[key]) {
-                    if (!(routerPath in ControllersValidatioQueriesMap)) ControllersValidatioQueriesMap[routerPath] = [];
+                if ((key in ControllersValidationMap) && "__barmoury__validation_queries__" in ControllersValidationMap[key]) {
+                    if (!(routerPath in ControllersValidationQueriesMap)) ControllersValidationQueriesMap[routerPath] = [];
                     for (const group of groups) {
-                        const validationQueries = ControllersValidationMap[key]["__bamoury__validation_queries__"][group];
+                        const validationQueries = ControllersValidationMap[key]["__barmoury__validation_queries__"][group];
                         if (!validationQueries) continue;
-                        ControllersValidatioQueriesMap[routerPath] = FieldUtil.mergeArrays(ControllersValidatioQueriesMap[routerPath], validationQueries);
+                        ControllersValidationQueriesMap[routerPath] = FieldUtil.mergeArrays(ControllersValidationQueriesMap[routerPath], validationQueries);
                     }
                 }
                 if (val.__barmoury_requestMapping.bodySchema) {

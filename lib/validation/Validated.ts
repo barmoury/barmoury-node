@@ -6,7 +6,7 @@ import { BarmouryObject } from "../util/Types";
 // empty it after controllers registration completes
 export const ControllersValidationMap: BarmouryObject = {};
 
-export interface ValidateAttributtes {
+export interface ValidateAttributes {
     model?: any;
     groups?: string[];
 }
@@ -17,7 +17,7 @@ export interface ValidatorAttr {
     validate: (sequelize: any, value: any, opt: any) => Promise<boolean>;
 }
 
-export function Validated(attr?: ValidateAttributtes) {
+export function Validated(attr?: ValidateAttributes) {
 
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
         descriptor.value.__barmoury_validate = {
@@ -32,11 +32,11 @@ export function prepareValidationMap(key: any, group: string = "CREATE") {
     if (!(key in ControllersValidationMap)) {
         ControllersValidationMap[key] = {};
     }
-    if (!("__bamoury__validation_queries__" in ControllersValidationMap[key])) {
-        ControllersValidationMap[key]["__bamoury__validation_queries__"] = {};
+    if (!("__barmoury__validation_queries__" in ControllersValidationMap[key])) {
+        ControllersValidationMap[key]["__barmoury__validation_queries__"] = {};
     }
-    if (!(group in ControllersValidationMap[key]["__bamoury__validation_queries__"])) {
-        ControllersValidationMap[key]["__bamoury__validation_queries__"][group] = [];
+    if (!(group in ControllersValidationMap[key]["__barmoury__validation_queries__"])) {
+        ControllersValidationMap[key]["__barmoury__validation_queries__"][group] = [];
     }
 }
 
@@ -65,7 +65,7 @@ export function prepareValidationSchema(key: any, propertyKey: string | undefine
     if (!(propertyKey in ControllersValidationMap[key]["body"][group]["properties"])) {
         ControllersValidationMap[key]["body"][group]["properties"][propertyKey] = {};
     }
-    if (!("type" in ControllersValidationMap[key]["body"][group]["properties"][propertyKey])) {
+    if (propertyKey && !("type" in ControllersValidationMap[key]["body"][group]["properties"][propertyKey])) {
         const reflectionType = Reflect.getMetadata("design:type", target, propertyKey);
         const type = ControllersValidationMap[`${reflectionType}`] ? "object" : reflectionType.name.toLowerCase();
         ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["type"] = type;
@@ -75,7 +75,7 @@ export function prepareValidationSchema(key: any, propertyKey: string | undefine
 export function registerValidation(target: any, group: string, validation: ValidatorAttr) {
     const key = `${target.constructor}`;
     prepareValidationMap(key, group);
-    ControllersValidationMap[key]["__bamoury__validation_queries__"][group].push(validation);
+    ControllersValidationMap[key]["__barmoury__validation_queries__"][group].push(validation);
 }
 
 // TODO add schema validation suppport for Joi and Yup

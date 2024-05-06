@@ -1,10 +1,9 @@
 
-import { Validator } from "./Validator";
 import { BarmouryObject } from "../util/Types";
 import { ControllersValidationMap, prepareValidationSchema } from "./Validated";
 import { FieldUtil } from "../util/FieldUtil";
 
-export interface ValidateEnumAttributtes {
+export interface ValidateEnumAttributes {
 
     value: any;
     only?: string[];
@@ -13,7 +12,7 @@ export interface ValidateEnumAttributtes {
 
 }
 
-export function ValidateEnum(options: ValidateEnumAttributtes) {
+export function ValidateEnum(options: ValidateEnumAttributes) {
 
     return function (target: any, propertyKey: string) {
         const groups = options.groups || ["CREATE"];

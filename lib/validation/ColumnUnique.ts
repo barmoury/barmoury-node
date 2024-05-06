@@ -1,7 +1,7 @@
 
 import { registerValidation } from "./Validated";
 
-export interface ColumnUniqueAttributtes {
+export interface ColumnUniqueAttributes {
     table: string;
     column: string;
     message: string;
@@ -9,7 +9,7 @@ export interface ColumnUniqueAttributtes {
     whereClause?: string;
 }
 
-export function ColumnUnique(attr: ColumnUniqueAttributtes) {
+export function ColumnUnique(attr: ColumnUniqueAttributes) {
 
     return function (target: any, propertyKey: string) {
         const groups = attr.groups || ["CREATE"];

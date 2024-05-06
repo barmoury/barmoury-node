@@ -101,7 +101,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
             return resourceRequest;
         }
         const id = (request.params as any).id;
-        resourceRequest.___BARMOURY_UPDATE_ENTITY_ID___ = parseInt(`${id}`);
+        resourceRequest.___BARMOURY_UPDATE_ENTITY_ID___ = id;
         return resourceRequest;
     }
 
@@ -177,7 +177,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
     async show(request: FastifyRequest, reply: FastifyReply): Promise<any> {
         await this.validateRouteAccess(request, RouteMethod.SHOW, "The GET '**/:id' route is not supported for this resource");
         const id = (request.params as any).id;
-        const resource: T1 = await this.getResourceById(id);
+        const resource: T1 = await this.getResourceById(id, (request as any).user);
         await this.postGetResourceById(request, (request as any).user, resource);
         await this.preResponse(resource);
         return await this.processResponse(reply, 200, resource, `${this.fineName} fetch successfully`);
@@ -189,7 +189,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
         await this.validateRouteAccess(request, RouteMethod.UPDATE, "The PATCH '**/:id' route is not supported for this resource");
         const id = (request.params as any).id;
         const requestPayload: T2 = request.body as T2;
-        let resource: T1 = (await this.getResourceById(id));
+        let resource: T1 = (await this.getResourceById(id, (request as any).user));
         await this.postGetResourceById(request, (request as any).user, resource);
         resource = resource.resolve(requestPayload, this.queryArmoury, (request as any).user);
         await this.preUpdate(request, (request as any).user, resource, requestPayload);
@@ -229,7 +229,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
     @RequestMapping({ value: "/multiple", method: RequestMethod.DELETE })
     async destroyMultiple(request: FastifyRequest, reply: FastifyReply): Promise<any> {
         await this.validateRouteAccess(request, RouteMethod.DESTROY_MULTIPLE, "The DELETE '**/multiple' route is not supported for this resource");
-        const resources: T1[] = await Promise.all((request.body as number[]).map(async (id) => await this.getResourceById(id)) as Promise<T1>[]);
+        const resources: T1[] = await Promise.all((request.body as any[]).map(async (id) => await this.getResourceById(id, (request as any).user)) as Promise<T1>[]);
         for (const resource of resources) {
             await this.postGetResourceById(request, (request as any).user, resource);
             await this.preDelete(request, (request as any).user, resource, resource.id!);

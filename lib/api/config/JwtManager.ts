@@ -30,7 +30,7 @@ export function registerJwt(fastify: FastifyInstance, opts: IJwtOptions) {
         }
         let authotization = (request.headers.authorization as string ?? "").split(" ");
         if (authotization.length < 2) {
-            throw new MissingTokenError("Authorization token is missing");
+            throw new MissingTokenError("authorization token is missing");
         }
         const result = findActiveToken(authotization[1], opts.secrets);
         request.user = result.payload;

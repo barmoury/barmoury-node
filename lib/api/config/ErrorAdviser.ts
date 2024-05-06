@@ -6,13 +6,13 @@ import { AjvValidationError } from "../exception";
 
 export const ErrorAdviserMap: BarmouryObject = {};
 
-export interface ErrorAdviseAttributtes<T> {
+export interface ErrorAdviseAttributes<T> {
     errors?: any[];
     statusCode?: number;
     errorNames?: string[];
 }
 
-export function ErrorAdvise<T>(attr: ErrorAdviseAttributtes<T>) {
+export function ErrorAdvise<T>(attr: ErrorAdviseAttributes<T>) {
 
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
         const response = {
@@ -35,6 +35,32 @@ export function ErrorAdvise<T>(attr: ErrorAdviseAttributtes<T>) {
         }
     };
 
+}
+
+export function registerErrorAdvisers<T>(fastify: FastifyInstance, options: BarmouryObject, advisers: (new (p?: any) => any)[]) {
+    for (const adviser of advisers) {
+        (new adviser(fastify) as any);
+    }
+    fastify.setErrorHandler(function (error: Error, request: FastifyRequest, reply: FastifyReply) {
+        const errorKey = (error as any).validation ? "AjvValidationError" : error.constructor.name;
+        const errorAdvice = ErrorAdviserMap[(Fastify.errorCodes as any)[(error as any).code]]
+            ?? ErrorAdviserMap[(error as any).code] ?? ErrorAdviserMap[errorKey] ?? ErrorAdviserMap["___UnknownError___"];
+
+        // TODO properly handle cors https://github.com/fastify/fastify-cors
+        reply.header("Access-Control-Allow-Origin", "*");
+        reply.header("Access-Control-Allow-Methods", "*");
+        reply.header("Access-Control-Allow-Headers", "*");
+        reply.header("Access-Control-Max-Age", 1728000);
+        reply.header("Access-Control-Allow-Credentials", true);
+        // end
+        if (errorAdvice) {
+            const response = errorAdvice.fn(error, options);
+            if (response.name === "FastifyError") delete response["name"];
+            reply.code(errorAdvice.statusCode ?? (error as any).statusCode ?? 500).send({ ...response });
+        } else {
+            reply.send(error);
+        }
+    });
 }
 
 export class ErrorAdviser {
@@ -81,7 +107,7 @@ export class ErrorAdviser {
         return this.default(error, options);
     }
 
-    @ErrorAdvise({ errorNames: ["InvalidParameterError", "ContraintValidationError"], statusCode: 400 })
+    @ErrorAdvise({ errorNames: ["InvalidParameterError", "ConstraintValidationError"], statusCode: 400 })
     badRequestErrors(error: Error, options?: BarmouryObject) {
         return this.default(error, options);
     }
@@ -120,32 +146,6 @@ export class ErrorAdviser {
         return this.default(error, { ...options, msg });
     }
 
-}
-
-export function registerErrorAdvisers<T>(fastify: FastifyInstance, options: BarmouryObject, advisers: (new (p?: any) => any)[]) {
-    for (const adviser of advisers) {
-        (new adviser(fastify) as any);
-    }
-    fastify.setErrorHandler(function (error: Error, request: FastifyRequest, reply: FastifyReply) {
-        const errorKey = (error as any).validation ? "AjvValidationError" : error.constructor.name;
-        const errorAdvice = ErrorAdviserMap[(Fastify.errorCodes as any)[(error as any).code]]
-            ?? ErrorAdviserMap[(error as any).code] ?? ErrorAdviserMap[errorKey] ?? ErrorAdviserMap["___UnknownError___"];
-
-        // TODO properly handle cors https://github.com/fastify/fastify-cors
-        reply.header("Access-Control-Allow-Origin", "*");
-        reply.header("Access-Control-Allow-Methods", "*");
-        reply.header("Access-Control-Allow-Headers", "*");
-        reply.header("Access-Control-Max-Age", 1728000);
-        reply.header("Access-Control-Allow-Credentials", true);
-        // end
-        if (errorAdvice) {
-            const response = errorAdvice.fn(error, options);
-            if (response.name === "FastifyError") delete response["name"];
-            reply.code(errorAdvice.statusCode ?? (error as any).statusCode ?? 500).send({ ...response });
-        } else {
-            reply.send(error);
-        }
-    });
 }
 
 

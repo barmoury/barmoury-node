@@ -8,7 +8,7 @@ export * from "./RouteValidatorError";
 export * from "./MalformedTokenError";
 export * from "./InvalidParameterError";
 export * from "./PreconditionFailedError";
-export * from "./ContraintValidationError";
+export * from "./ConstraintValidationError";
 export * from "./RouteMethodNotSupportedError";
 export * from "./RouteMethodNotSupportedError";
 export * from "./InvalidBactuatorQueryException";

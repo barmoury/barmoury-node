@@ -4,7 +4,7 @@ import { RequestMethod } from "../enum/RequestMethod";
 
 export const ControllersRequestMap: BarmouryObject = {};
 
-export interface RequestMappingAttributtes {
+export interface RequestMappingAttributes {
 
     model?: object;
     value?: string;
@@ -17,7 +17,7 @@ export interface RequestMappingAttributtes {
 
 }
 
-export function RequestMapping(options: string | RequestMappingAttributtes) {
+export function RequestMapping(options: string | RequestMappingAttributes) {
     return function (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) {
         if (descriptor) {
             descriptor.value.__barmoury_requestMapping = options;

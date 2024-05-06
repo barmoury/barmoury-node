@@ -9,8 +9,10 @@ export interface IRouteValidator {
     valid: (request: FastifyRequest, reply: FastifyReply) => Promise<boolean>;
 }
 
+export type RouteValidator = IRouteValidator;
+
 let registeredRouteValidators = false;
-export function registerRouteValidators(fastify: FastifyInstance, routeValidators: IRouteValidator[]) {
+export function registerRouteValidators(fastify: FastifyInstance, routeValidators: RouteValidator[]) {
     if (registeredRouteValidators) return; registeredRouteValidators = true;
     const mappedRouteValidators: any = {}; // map lookup is faster
     for (const routeValidator of routeValidators) {

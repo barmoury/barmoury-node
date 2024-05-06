@@ -1,9 +1,9 @@
 
 import { ControllersValidationMap, prepareValidationSchema, registerValidation } from "./Validated";
-import { ContraintValidationError } from "../api";
+import { ConstraintValidationError } from "../api";
 import { Util } from "../util";
 
-export interface ValidateArrayAttributtes {
+export interface ValidateArrayAttributes {
     itemType: any;
     message?: string;
     groups?: string[];
@@ -23,7 +23,7 @@ function getStoredValidation(group: string, key: any) {
     return item;
 }
 
-export const ValidateArray = (options: ValidateArrayAttributtes) => {
+export const ValidateArray = (options: ValidateArrayAttributes) => {
 
     return function (target: any, propertyKey: string) {
         const key = `${target.constructor}`;
@@ -79,7 +79,7 @@ export const ValidateArray = (options: ValidateArrayAttributtes) => {
                         for (const itemValidator of itemValidators) {
                             if (!itemValidator) continue;
                             if (!await itemValidator.validate!(sequelize, value, opt)) {
-                                throw new ContraintValidationError(itemValidator.message.replace(/{value}+/g, value));
+                                throw new ConstraintValidationError(itemValidator.message.replace(/{value}+/g, value));
                             }
                         }
                     }

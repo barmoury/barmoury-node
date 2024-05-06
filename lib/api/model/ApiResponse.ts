@@ -68,9 +68,9 @@ export class ApiResponse<T> {
     }
 
     reply(reply: FastifyReply, statusCode?: number) {
-        const code = statusCode || this._statusCode;
+        const code = statusCode ?? this._statusCode;
         delete this._statusCode;
-        return reply.code(code || 200).send(this);
+        return reply.code(code ?? 200).send(this);
     }
 
     r(reply: FastifyReply, statusCode?: number) {
