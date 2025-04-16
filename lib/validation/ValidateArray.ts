@@ -18,7 +18,7 @@ export interface ValidateArrayAttributes {
 }
 
 function getStoredValidation(group: string, key: any) {
-    const item = ((ControllersValidationMap[`${key}`] || {}).body || {})[group] || {};
+    const item = ((ControllersValidationMap[`${key}`] ?? {}).body ?? {})[group] ?? {};
     item.type = "object";
     return item;
 }
@@ -37,19 +37,18 @@ export const ValidateArray = (options: ValidateArrayAttributes) => {
                 if (Util.isClass(options.itemType)) {
                     ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"] =
                         getStoredValidation(group, options.itemType);
-                    return;
+                } else {
+                    options.itemType(target, propertyKey);
+                    const items = ControllersValidationMap[key]["body"][group]["properties"][propertyKey];
+                    ControllersValidationMap[key]["body"][group]["properties"][propertyKey] = { type: "array", items };
                 }
-                options.itemType(target, propertyKey);
-                const items = ControllersValidationMap[key]["body"][group]["properties"][propertyKey];
-                ControllersValidationMap[key]["body"][group]["properties"][propertyKey] = { type: "array", items };
-                return;
             } else if (typeof options.itemType === "object" && options.itemType instanceof Array) {
                 const ajvValues = options.itemType
                     .map(item => {
                         if (typeof item == "function") {
                             if (Util.isClass(item)) return getStoredValidation(group, item);
                             const cachedSchema = ControllersValidationMap[key]["body"][group]["properties"][propertyKey];
-                            options.itemType(target, propertyKey);
+                            item(target, propertyKey);
                             const items = ControllersValidationMap[key]["body"][group]["properties"][propertyKey];
                             ControllersValidationMap[key]["body"][group]["properties"][propertyKey] = cachedSchema;
                             return items;
@@ -59,15 +58,15 @@ export const ValidateArray = (options: ValidateArrayAttributes) => {
                 ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"] = {
                     anyOf: ajvValues
                 };
-                return;
+            } else {
+                ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"] = {};
+                ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"]["type"] = options.itemType;
             }
-            ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"] = {};
-            ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["items"]["type"] = options.itemType;
 
 
             if (!options.itemValidators && !options.itemValidator) continue;
             const message = options.message || "The entry value '{value}' did not pass validation";
-            const itemValidators = [...(options.itemValidators || []), (options.itemValidator ? {
+            const itemValidators = [...(options.itemValidators ?? []), (options.itemValidator ? {
                 message,
                 validate: options.itemValidator
             } : undefined)];

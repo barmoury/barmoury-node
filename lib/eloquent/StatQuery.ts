@@ -181,6 +181,7 @@ StatQuery.ColumnQuery = ColumnQuery;
 StatQuery.MedianQuery = MedianQuery;
 StatQuery.AverageQuery = AverageQuery;
 StatQuery.OccurrenceQuery = OccurrenceQuery;
+StatQuery.OccurrenceQueryType = OccurrenceQueryType;
 StatQuery.PercentageChangeQuery = PercentageChangeQuery;
 
 

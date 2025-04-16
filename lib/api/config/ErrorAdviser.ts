@@ -21,16 +21,12 @@ export function ErrorAdvise<T>(attr: ErrorAdviseAttributes<T>) {
         };
         if (attr.errorNames) {
             for (const errorName of attr.errorNames) {
-                if (!(errorName in ErrorAdviserMap)) {
-                    ErrorAdviserMap[errorName] = response;
-                }
+                ErrorAdviserMap[errorName] = response;
             }
         }
         if (attr.errors) {
             for (const error of attr.errors) {
-                if (!(error in ErrorAdviserMap)) {
-                    ErrorAdviserMap[error] = response;
-                }
+                ErrorAdviserMap[error] = response;
             }
         }
     };
@@ -41,7 +37,7 @@ export function registerErrorAdvisers<T>(fastify: FastifyInstance, options: Barm
     for (const adviser of advisers) {
         (new adviser(fastify) as any);
     }
-    fastify.setErrorHandler(function (error: Error, request: FastifyRequest, reply: FastifyReply) {
+    fastify.setErrorHandler(async function (error: Error, request: FastifyRequest, reply: FastifyReply) {
         const errorKey = (error as any).validation ? "AjvValidationError" : error.constructor.name;
         const errorAdvice = ErrorAdviserMap[(Fastify.errorCodes as any)[(error as any).code]]
             ?? ErrorAdviserMap[(error as any).code] ?? ErrorAdviserMap[errorKey] ?? ErrorAdviserMap["___UnknownError___"];
@@ -54,7 +50,7 @@ export function registerErrorAdvisers<T>(fastify: FastifyInstance, options: Barm
         reply.header("Access-Control-Allow-Credentials", true);
         // end
         if (errorAdvice) {
-            const response = errorAdvice.fn(error, options);
+            const response = await errorAdvice.fn(error, { ...options, request });
             if (response.name === "FastifyError") delete response["name"];
             reply.code(errorAdvice.statusCode ?? (error as any).statusCode ?? 500).send({ ...response });
         } else {
@@ -80,15 +76,17 @@ export class ErrorAdviser {
         return this.processResponse(error, [options?.msg ?? error.message], options?.logger);
     }
 
-    @ErrorAdvise({ errorNames: ["AjvValidationError"], statusCode: 400 })
-    ajvValidationError(error: any, options?: BarmouryObject) {
-        const errors = error.validation.map((err: BarmouryObject) => AjvValidationError.cleanError(err, error.group));
+    @ErrorAdvise({ errors: [Fastify.errorCodes.FST_ERR_CTP_INVALID_MEDIA_TYPE] })
+    invalidMediaTypeError(error: Error, options?: BarmouryObject) {
+        const errors = error.message.split(",").map(s => s.trim());
+        error.message = errors[0];
         return this.processResponse(error, errors, options?.logger);
     }
 
-    @ErrorAdvise({ errors: [Fastify.errorCodes.FST_ERR_CTP_INVALID_MEDIA_TYPE] })
-    invalidMediaTypeError(error: Error, options?: BarmouryObject) {
-        return this.processResponse(error, [error.message], options?.logger);
+    @ErrorAdvise({ errorNames: ["AjvValidationError", "FST_ERR_VALIDATION"], statusCode: 400 })
+    ajvValidationError(error: any, options?: BarmouryObject) {
+        const errors = error.validation.map((err: BarmouryObject) => AjvValidationError.cleanError(err, error.group));
+        return this.processResponse(error, errors, options?.logger);
     }
 
     @ErrorAdvise({ errorNames: ["AccessDeniedError"], statusCode: 403 })

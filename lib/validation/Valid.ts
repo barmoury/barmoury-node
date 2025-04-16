@@ -1,6 +1,7 @@
 
 import "reflect-metadata";
-import { ControllersValidationMap, prepareValidationSchema } from "./Validated";
+import { FieldUtil } from "../util";
+import { ControllersValidationMap, prepareValidationSchema, updateObjectPropertySchema } from "./Validated";
 
 export interface ValidAttributes {
     value?: any;
@@ -17,7 +18,8 @@ export function Valid(options?: ValidAttributes) {
             let value = options?.value || Reflect.getMetadata("design:type", target, propertyKey);
             if (typeof value !== "function") return;
             const schema = ((ControllersValidationMap[`${value}`] || {}).body || {})[group] || {};
-            schema.type = "object"; ControllersValidationMap[key]["body"][group]["properties"][propertyKey] = schema;
+            schema.type = "object";
+            updateObjectPropertySchema(key, propertyKey, target, group, schema);
         }
     };
 

@@ -7,7 +7,7 @@ import { BarmouryObject } from "../util/Types";
 export const ControllersValidationMap: BarmouryObject = {};
 
 export interface ValidateAttributes {
-    model?: any;
+    model?: any; // TODOs change to request
     groups?: string[];
 }
 
@@ -70,6 +70,12 @@ export function prepareValidationSchema(key: any, propertyKey: string | undefine
         const type = ControllersValidationMap[`${reflectionType}`] ? "object" : reflectionType.name.toLowerCase();
         ControllersValidationMap[key]["body"][group]["properties"][propertyKey]["type"] = type;
     }
+}
+
+export function updateObjectPropertySchema(key: any, propertyKey: string | undefined, target: any, group: string, schema: any) {
+    if (!propertyKey) return;
+    prepareValidationSchema(key, propertyKey, target, group);
+    ControllersValidationMap[key]["body"][group]["properties"][propertyKey] = FieldUtil.mergeObjects(true, ControllersValidationMap[key]["body"][group]["properties"][propertyKey], schema);
 }
 
 export function registerValidation(target: any, group: string, validation: ValidatorAttr) {
