@@ -22,7 +22,7 @@ export function Validated(attr?: ValidateAttributes) {
     return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
         descriptor.value.__barmoury_validate = {
             model: attr?.model,
-            groups: attr?.groups || ["CREATE"]
+            groups: attr?.groups ?? ["CREATE"]
         };
     };
 

@@ -1,5 +1,6 @@
 import { FastifyReply } from "fastify";
 import { InvalidParameterError } from "../exception";
+import { ApplyJsonPropertyToModel } from "../../serializer";
 
 export class ApiResponse<T> {
 
@@ -65,6 +66,7 @@ export class ApiResponse<T> {
         } else {
             throw new InvalidParameterError("Invalid number of argument");
         }
+        ApplyJsonPropertyToModel(this.data);
     }
 
     reply(reply: FastifyReply, statusCode?: number) {

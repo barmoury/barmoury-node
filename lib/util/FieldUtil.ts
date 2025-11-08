@@ -49,6 +49,14 @@ export const FieldUtil = {
         return toSnakeCase ? FieldUtil.toSnakeCase(name) : name;
     },
 
+    traversePrototypeWithSupers(clazz: (new (...args: any[]) => any), fun: (prototipe: Function) => void | boolean) {
+        let konstructor = clazz.constructor;
+        do {
+            if (fun(konstructor)) return;
+            konstructor = Object.getPrototypeOf(konstructor);
+        } while (konstructor && konstructor.name && konstructor.name !== "Object");
+    },
+
     cloneObjects(exludes: string[], ...sources: any[]) {
         let result: any = {};
         for (const source of sources) {
@@ -154,6 +162,17 @@ export const FieldUtil = {
             return result[0] ? result[0][key] : undefined;
         }
         return (result || {})[key];
+    },
+
+    getActualDataFields(model: any): { fields: Object; location: string; } {
+        if (!!model.dataValues) return {
+            location: "dataValues",
+            fields: model.dataValues,
+        };
+        return {
+            fields: model,
+            location: "",
+        };
     },
 
 }

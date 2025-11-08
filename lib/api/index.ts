@@ -91,14 +91,15 @@ export function registerRoutes(fastify: FastifyInstance, opts: { controller: Con
             const route = controllerRoute + ((typeof val.__barmoury_requestMapping === "string")
                 ? val.__barmoury_requestMapping
                 : val.__barmoury_requestMapping.value || "");
-            const method = ((typeof val.__barmoury_requestMapping === "string") ? "get" : val.__barmoury_requestMapping.method || "get");
+            const method = ((typeof val.__barmoury_requestMapping === "string") ? "get" : val.__barmoury_requestMapping.method ?? "get");
             const option: BarmouryObject = { schema: {} };
             const routerPath = `${method.toUpperCase()}__${opts.prefix ?? ""}${route}`.replace(/([^:]\/)\/+/g, "$1");
             if (routesSet.has(routerPath)) return;
             routesSet.add(routerPath);
             // auto wire body validation
             if (val.__barmoury_validate) {
-                const { model, groups } = val.__barmoury_validate;
+                const requestModel = ((typeof val.__barmoury_requestMapping !== "string") ? val.__barmoury_requestMapping.request : undefined);
+                const { model = requestModel, groups } = val.__barmoury_validate;
                 const key = `${model ?? controllerRequestMapping.request}`;
                 for (const group of groups) {
                     const schema = ((ControllersValidationMap[key] ?? {}).body ?? {})[group];

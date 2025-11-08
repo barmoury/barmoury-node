@@ -1,5 +1,4 @@
 
-import { FieldUtil } from "../util";
 import { BarmouryObject } from "../util/Types";
 
 export class Copier {
