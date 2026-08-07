@@ -605,8 +605,7 @@ export class QueryArmoury {
                     const operator: string = requestParamFilter.operator as unknown as string;
                     fieldName = `${fieldName}${requestParamFilter.multiFilterSeparator == "__" &&
                         (requestParamFilter.acceptSnakeCase || (clazz as any).underscored)
-                        ? "_" : requestParamFilter.multiFilterSeparator
-                        }${operator[0]}${operator.substring(1)}`;
+                        ? "_" : requestParamFilter.multiFilterSeparator}${operator[0]}${operator.substring(1)}`;
                 }
                 let extraFieldNames: any = [];
                 extraFieldNames.push(fieldName);
@@ -678,8 +677,7 @@ export class QueryArmoury {
 
             if (!resolveStatQueryAnnotations/* && requestParamFilter.operator !== RequestParamFilter.Operator.NONE*/) {
                 for (let [key, eValues] of Object.entries(request.query as any)) {
-                    if (key == queryParam || (objectFilter && key.startsWith(queryParam))
-                        || (isEntity && key.startsWith(`${queryParam}.`))) {
+                    if (key == queryParam || ((objectFilter || isEntity) && key.startsWith(`${queryParam}.`))) {
                         let anyValuePresent = false;
                         if (typeof eValues == "string") eValues = [eValues];
                         for (let value of eValues as any) {

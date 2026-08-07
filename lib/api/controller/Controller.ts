@@ -7,6 +7,7 @@ import { RequestMapping } from "../decorator/RequestMapping";
 import { MySqlInterface, QueryArmoury } from "../../eloquent";
 import { FastifyRequest, FastifyReply, FastifyInstance } from "fastify";
 import { AccessDeniedError, InvalidParameterError, RouteMethodNotSupportedError } from "../exception";
+import { IdModel } from "../model/modelling/IdModel";
 
 interface IQuerystring {
     username: string;
@@ -232,7 +233,7 @@ export class Controller<T1 extends Model<any, any>, T2 extends Request> {
         const resources: T1[] = await Promise.all((request.body as any[]).map(async (id) => await this.getResourceById(id, (request as any).user)) as Promise<T1>[]);
         for (const resource of resources) {
             await this.postGetResourceById(request, (request as any).user, resource);
-            await this.preDelete(request, (request as any).user, resource, resource.id!);
+            await this.preDelete(request, (request as any).user, resource, (resource instanceof IdModel ? resource.id! : 0));
             if (this.deleteAsynchronously) {
                 resource.destroy().then((_: any) => {
                     this.postDelete(request, (request as any).user, resource);

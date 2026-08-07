@@ -4,7 +4,7 @@ import { Model } from "./model/Model";
 export const Timeo = {
 
     resolve(model: Model<any, any>) {
-        if (!model.id) { Timeo.resolveCreated(model); }
+        if (!model.createdAt) { Timeo.resolveCreated(model); }
         else { Timeo.resolveUpdated(model); }
     },
 
