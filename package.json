@@ -10,7 +10,7 @@
     "clean": "rm -Rf dist",
     "watch": "npx npm-watch build",
     "update": "npx -y npm-check-updates -u",
-    "pack": "bash -c 'npm run clean; npm run build; cp ./{package.json,LICENSE,README.md} dist; cd dist; npm pack'",
+    "pack": "sh -c 'npm run clean; npm run build; cp ./{package.json,LICENSE,README.md} dist; cd dist; npm pack'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "files": [
